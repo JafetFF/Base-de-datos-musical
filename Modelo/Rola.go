@@ -2,9 +2,9 @@ package main
 
 type Rola struct {
      id	    int
-     titulo string
-     ruta   string
-     pista  int
-     año    int
-     genero string
+     title  string
+     path   string
+     track  int
+     year   int
+     genre  string
 }

@@ -1,0 +1,64 @@
+package main
+
+import (
+       "database/sql"
+       "os"
+       "path/filepath"
+       "testing"
+       _ "modernc.org/sqlite"
+)
+
+// Prueba unitaria para el método Busca
+func TestBusca(t *testing.T) {
+     ruta := filepath.Join(t.TempDir(), "prueba.db")
+     
+     db, err := sql.Open("sqlite", ruta)
+     if err != nil {
+     	t.Fatalf("No se pudo abrir la base de datos: %v", err)
+     }
+     defer db.Close()
+
+     if err := db.Ping(); err != nil {
+	t.Fatalf("No se pudo conectar a la base de datos: %v", err)
+     }
+
+     esquema, err := os.ReadFile("../BDD/esquema.sql")
+     if err != nil {
+	t.Fatalf("No se pudo leer el esquema SQL: %v", err)
+     }
+     
+     if _, err := db.Exec(string(esquema)); err != nil {
+	t.Fatalf("No se pudo ejecutar el esquema: %v", err)
+     } 
+     
+     _, err = db.Exec(`
+	INSERT INTO rolas (title, year, genre)
+	VALUES (?, ?, ?)
+        `, "RolaPrueba", 2026, "Rock")
+
+     if err != nil {
+	t.Fatalf("No se pudo insertar la rola de prueba: %v", err)
+     }
+
+     rolas, err := Busca("RolaPrueba", db)
+     if err != nil {
+	t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+     
+     if len(rolas) == 0 {
+	t.Fatal("Se esperaba encontrar la rola pero no hubo resultados")
+     }
+     
+     encontrada := false
+
+     for _, rola := range rolas {
+          if rola.title == "RolaPrueba" {
+	     encontrada = true
+	     break
+	  }
+     }
+
+     if !encontrada {
+	t.Fatal("Se encontraron resultados pero no la canción esperada")
+     }
+}

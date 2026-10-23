@@ -46,8 +46,13 @@ func RecibeInstruccion(db *sql.DB) {
 	 }
 	 cadena := strings.Join(result[1:]," ")
 	 switch result[0] {
-	 case "search": 	    	    
-	    MuestraRolas(Busca(cadena, db))
+	 case "search":
+	    rolas, err := Busca(cadena, db)
+	    if err != nil {
+	       fmt.Printf("Error al buscar las rolas: %v\n", err)
+	       return
+	    }
+	    MuestraRolas(rolas)
 	 case "add":
 	    //AgregaRola(cadena)
 	 case "remove":
@@ -62,9 +67,42 @@ func RecibeInstruccion(db *sql.DB) {
 Función que busca las coincidencias con la cadena recibida
 en la bdd y luego las regresa
 */
-func Busca(cadena string, db *sql.DB) ([]Rola) {
-     //
-     return nil
+func Busca(cadena string, db *sql.DB) ([]Rola, error) {
+    renglones, err := db.Query(
+        `SELECT id_rola, title, year, genre
+         FROM rolas
+         WHERE title LIKE ?`,
+        "%"+cadena+"%",
+    )
+    
+    if err != nil {
+        return nil, err
+    }
+    defer renglones.Close()
+
+    var rolas []Rola
+
+    for renglones.Next() {
+        var rola Rola
+
+        err := renglones.Scan(
+            &rola.id,
+            &rola.title,
+            &rola.year,
+            &rola.genre,
+        )
+        if err != nil {
+            return nil, err
+        }
+
+        rolas = append(rolas, rola)
+    }
+
+    if err := renglones.Err(); err != nil {
+        return nil, err
+    }
+
+    return rolas, nil
 }
 
 /*
