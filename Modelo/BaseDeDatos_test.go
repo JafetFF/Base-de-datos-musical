@@ -12,10 +12,10 @@ import (
 func bddPrueba(t *testing.T) *sql.DB {
      t.Helper()
 
-     file := filepath.Join(t.TempDir(), "prueba.db")
+     ruta := filepath.Join(t.TempDir(), "prueba.db")
      db, err := sql.Open("sqlite", ruta)
      if err != nil {
-     	t.Fatal("No se pudo abrir la base de datos: %v", err)
+     	t.Fatalf("No se pudo abrir la base de datos: %v", err)
      }
      t.Cleanup(func() {
      	db.Close()
@@ -42,7 +42,7 @@ func TestBusca(t *testing.T) {
      db := bddPrueba(t)
 
      _, err := db.Exec(
-     	`INSEERT INTO rolas (title, year, genre)
+     	`INSERT INTO rolas (title, year, genre)
 	VALUES (?, ?, ?)`, "RolaPrueba", 2026, "Rock")
 
      if err != nil {
@@ -91,11 +91,11 @@ func TestAgrega(t *testing.T) {
      var genero string
      
      err := db.QueryRow(
-     	 "SELECT title FROM rolas
-	 WHERE title = ?", rola.title).Scan(&titulo, &año, &genero)
+     	 `SELECT title, year, genre FROM rolas
+	 WHERE title = ?`, rola.title).Scan(&titulo, &año, &genero)
 
      if err != nil {
-     	f.Fatal("Error al encontrar la rola: %v", err)
+     	t.Fatalf("Error al encontrar la rola: %v", err)
      }
 
      if titulo != rola.title ||

@@ -51,9 +51,9 @@ func RecibeInstruccion(db *sql.DB) {
 	    MuestraRolas(rolas)
 	 case "add":
 	 // de alguna manera recibe la rola
-	    Agrega(rola, db)
+	    // Agrega(rola, db)
 	 case "remove":
-	    EliminaRola(rola, db)
+	    //EliminaRola(rola, db)
 	 case "edit":
 	    //EditaRola(cadena)
 	 }
