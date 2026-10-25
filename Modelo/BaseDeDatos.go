@@ -55,7 +55,7 @@ func RecibeInstruccion(db *sql.DB) {
 	 case "remove":
 	    //Elimina(rola, db)
 	 case "edit":
-	    //Edita(cadena)
+	    //Edita(rola, db)
 	 }
      }
 }
@@ -122,6 +122,24 @@ func Elimina(id int, db *sql.DB) error {
      _, err := db.Exec(
      	`DELETE FROM rolas WHERE id_rola = ?`, id)
 
+     return err
+}
+
+/*
+Función que edita una rola de la bdd mediante su id
+y una rola que se le pasa como parámetro
+supone que la rola existe en la bdd
+*/
+func Edita(id int, rola Rola, db *sql.DB) error {
+     _, err := db.Exec(
+     	`UPDATE rolas
+	 SET title = ?,
+ 	     track = ?,
+	     year  = ?,
+	     genre = ?
+	     WHERE id_rola = ?`,
+	     rola.title, rola.track,
+	     rola.year, rola.genre, id)
      return err
 }
 

@@ -138,3 +138,63 @@ func TestElimina(t *testing.T) {
      	t.Fatal("La rola no fue eliminada")
      }
 }
+
+// Prueba unitaria para el método Edita
+func TestEdita(t *testing.T) {    
+     db := bddPrueba(t)
+
+     original := Rola{
+     	      title: "Quizá",
+	      track: 2,
+	      year:  2010,
+	      genre: "Balada pop",
+     }
+
+     if err := Agrega(original, db); err != nil {
+     	t.Fatalf("Error al agregar la rola: %v", err)
+     }
+
+     var id int
+     err := db.QueryRow(
+     	 `SELECT id_rola FROM rolas
+	  WHERE title = ?`, original.title).Scan(&id)
+
+     if err != nil {
+     	t.Fatal(err)
+     }
+
+     modificada := Rola{
+     		title: "What I've Done",
+		track: 6,
+		year:  2007,
+		genre: "Hard Rock",
+     }
+
+     if err := Edita(id, modificada, db); err != nil {
+     	t.Fatalf("Error al editar la rola: %v", err)
+     }
+
+     var res Rola
+     err = db.QueryRow(
+     	 `SELECT id_rola, title, track, year, genre
+	 FROM rolas
+	 WHERE id_rola = ?`, id).Scan(
+	 &res.id, &res.title,
+	 &res.track, &res.year, &res.genre,
+         )
+
+     if err != nil {
+     	t.Fatal(err)
+     }
+
+     if res.id != id {
+     	t.Fatalf("Cambió el ID de %d a %d", id, res.id)
+     }
+
+     if res.title != modificada.title ||
+     	res.track != modificada.track ||
+	res.year  != modificada.year  ||
+	res.genre != modificada.genre {
+	t.Fatal("No se modificaron los datos de la rola correctamente")
+     }
+}
