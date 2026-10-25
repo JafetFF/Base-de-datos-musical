@@ -28,11 +28,7 @@ func main() {
 	return
      }
 
-     fmt.Print("si funciona")
-
-     RecibeInstruccion(db)
-     
-     
+     RecibeInstruccion(db)     
 }
 
 // Función que recibe una instrucción para ejecutar en la bdd
@@ -54,9 +50,10 @@ func RecibeInstruccion(db *sql.DB) {
 	    }
 	    MuestraRolas(rolas)
 	 case "add":
-	    //AgregaRola(cadena)
+	 // de alguna manera recibe la rola
+	    Agrega(rola, db)
 	 case "remove":
-	    //EliminaRola(cadena)
+	    EliminaRola(rola, db)
 	 case "edit":
 	    //EditaRola(cadena)
 	 }
@@ -103,6 +100,18 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     }
 
     return rolas, nil
+}
+
+
+/*
+Función que agrega una rola a la bdd
+*/
+func Agrega(rola Rola, db *sql.DB) error {
+     _, err := db.Exec(
+     	`INSERT INTO rolas (title, year, genre)
+	VALUES (?, ?, ?)`, rola.title, rola.year, rola.genre)
+
+     return err
 }
 
 /*
