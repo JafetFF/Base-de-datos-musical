@@ -16,7 +16,7 @@ func main() {
      db, err := sql.Open("sqlite", "../BDD/BaseMusical.db")
 
      if err != nil {
-     	fmt.Printf("Error %v al abrir la base de datos\n", err)
+     	fmt.Printf("Error %v al abrir la base de datos \n", err)
 	return
      }
      defer db.Close()
@@ -53,9 +53,9 @@ func RecibeInstruccion(db *sql.DB) {
 	 // de alguna manera recibe la rola
 	    // Agrega(rola, db)
 	 case "remove":
-	    //EliminaRola(rola, db)
+	    //Elimina(rola, db)
 	 case "edit":
-	    //EditaRola(cadena)
+	    //Edita(cadena)
 	 }
      }
 }
@@ -110,6 +110,17 @@ func Agrega(rola Rola, db *sql.DB) error {
      _, err := db.Exec(
      	`INSERT INTO rolas (title, year, genre)
 	VALUES (?, ?, ?)`, rola.title, rola.year, rola.genre)
+
+     return err
+}
+
+/*
+Función que elimina una rola de la bdd mediante su id
+ya que el título podría repetirse
+*/
+func Elimina(id int, db *sql.DB) error {
+     _, err := db.Exec(
+     	`DELETE FROM rolas WHERE id_rola = ?`, id)
 
      return err
 }

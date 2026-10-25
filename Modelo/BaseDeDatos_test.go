@@ -104,3 +104,37 @@ func TestAgrega(t *testing.T) {
      	t.Fatal("No coinciden los datos guardados con los esperados")
      }
 }
+
+// Prueba unitaria para el método Elimina
+func TestElimina(t *testing.T) {    
+     db := bddPrueba(t)
+
+     result, err := db.Exec(
+     	     `INSERT INTO rolas (title) VALUES (?)`, "Prueba")
+
+     if err != nil {
+     	t.Fatalf("No se añadió la rola: %v", err)
+     }
+
+     id, err := result.LastInsertId()
+     if err != nil {
+     	t.Fatalf("No se pudo obtener el id: %v", err)
+     }
+
+     if err := Elimina(int(id), db); err != nil {
+     	t.Fatalf("Ocurrió un problema al eliminar la rola: %v", err)
+     }
+
+     var ocurrencias int
+     err = db.QueryRow(
+     	 `SELECT COUNT(*) FROM rolas
+	 WHERE id_rola = ?`, id).Scan(&ocurrencias)
+
+     if err != nil {
+     	t.Fatalf("Ocurrió un problema al buscar coincidencias: %v", err)
+     }
+
+     if ocurrencias != 0 {
+     	t.Fatal("La rola no fue eliminada")
+     }
+}
