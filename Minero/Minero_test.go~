@@ -1,0 +1,28 @@
+package minero
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestBuscaMP3(t *testing.T) {
+	directorio := t.TempDir()
+
+	os.Mkdir(filepath.Join(directorio, "Rock"), 0755)
+
+	os.Create(filepath.Join(directorio, "Rock", "cancion1.mp3"))
+	os.Create(filepath.Join(directorio, "Rock", "cancion2.mp3"))
+	os.Create(filepath.Join(directorio, "Rock", "imagen.png"))
+	os.Create(filepath.Join(directorio, "cancion3.mp3"))
+
+	canciones, err := BuscaMP3(directorio)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(canciones) != 3 {
+		t.Fatalf("Se esperaban 3 canciones, se encontraron %d", len(canciones))
+	}
+}
