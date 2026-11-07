@@ -10,7 +10,7 @@ import (
 Función que recibe un directorio y devuelve
 los directorios de todos los archivos encontrados
 */
-func BuscaMp3(directorio string) ([]string, err){
+func BuscaMp3(directorio string) ([]string, error){
    var canciones []string
    
    err := filepath.WalkDir(directorio,
