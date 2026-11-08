@@ -30,6 +30,29 @@ type Metadatos struct {
 }
 
 /*
+Función que mina un directorio devolviendo los metadatos
+para después almacenarlos en la base de datos
+*/
+func Mina(directorio string) ([]Metadatos, error) {
+    rutas, err := BuscaMp3(directorio)
+    if err != nil {
+        return nil, err
+    }
+
+    resultados := make([]Metadatos, 0, len(rutas))
+
+    for _, ruta := range rutas {
+        datos, err := LeeEtiquetas(ruta)
+        if err != nil {
+            return nil, err
+        }
+        resultados = append(resultados, datos)
+    }
+
+    return resultados, nil
+}
+
+/*
 Función que recibe un directorio y devuelve
 los directorios de todos los archivos encontrados
 */
