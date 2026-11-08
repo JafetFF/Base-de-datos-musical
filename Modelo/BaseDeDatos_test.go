@@ -118,6 +118,36 @@ func TestAgrega(t *testing.T) {
 }
 
 /*
+Función que comprueba que al agregar una rola sin
+album se agrega con id_album = 0
+*/
+func TestAgregaSinAlbum(t *testing.T) {
+     db := bddPrueba(t)
+
+     rola := Rola{
+         artist: "Eiro Nareth",
+         title:  "Around the world",
+     }
+
+     if err := Agrega(rola, db); err != nil {
+         t.Fatalf("No se pudo insertar la rola: %v", err)
+     }
+
+     var idAlbum int
+     err := db.QueryRow(
+         `SELECT id_album FROM rolas WHERE title = ?`,
+         rola.title,
+     ).Scan(&idAlbum)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+     if idAlbum != 0 {
+         t.Fatalf("Se esperaba id_album = 0, se obtuvo %d", idAlbum)
+     }
+}
+
+/*
 Prueba unitaria que comprueba que no se permitan
 artistas repetidos al agregar varias rolas de un mismo artista
 */
