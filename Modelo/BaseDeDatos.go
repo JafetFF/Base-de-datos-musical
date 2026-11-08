@@ -109,33 +109,21 @@ asegurándose de que el artista no esté
 ya agregado en la base de datos
 */
 func Agrega(rola Rola, db *sql.DB) error {
-     idPerformer, err := BuscaPerformer(rola.artist, 2, db)
+     idPerformer, err := ObtienePerformer(rola, db)
+     if err != nil {
+     	return err
+     }
 
-     if err == sql.ErrNoRows {
-     	resultado, err := db.Exec(
-	      `INSERT INTO performers (name, id_type)
-              VALUES (?, ?)`,
-              rola.artist, 2,
-        )
-     	if err != nil {
-     	   return err
-     	}
-
-     	nuevoID, err := resultado.LastInsertId()
-     	if err != nil {
-     	   return err
-        }
-
-     	idPerformer = int(nuevoID)
-
-     } else if err != nil {
-        return err
+     idAlbum, err := ObtieneAlbum(rola, db)
+     if err != nil {
+     	return err
      }
 
      _, err = db.Exec(
-        `INSERT INTO rolas (id_performer, title, path, track, year, genre)
-        VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO rolas (id_performer, id_album, title, path, track, year, genre)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
         idPerformer,
+	idAlbum,
         rola.title,
         rola.path,
         rola.track,
@@ -143,6 +131,31 @@ func Agrega(rola Rola, db *sql.DB) error {
         rola.genre,
      )
      return err
+}
+
+/*
+Función auxiliar que agrega al artista si no
+existe y que regresa el id del artista
+*/
+func ObtienePerformer(rola Rola, db *sql.DB) (int, error) {
+     id, err := BuscaPerformer(rola.artist, 2, db)
+
+     if err == sql.ErrNoRows {
+         resultado, err := db.Exec(
+             `INSERT INTO performers (name, id_type)
+              VALUES (?, ?)`,
+              rola.artist, 2,
+         )
+         if err != nil {
+             return 0, err
+         }
+         nuevoID, err := resultado.LastInsertId()
+         if err != nil {
+             return 0, err
+         }
+         return int(nuevoID), nil
+     }
+     return id, err
 }
 
 /*
@@ -160,6 +173,50 @@ func BuscaPerformer(nombre string, tipo int, db *sql.DB) (int, error) {
      return id, err
 }
 
+/*
+Función auxiliar que agrega el álbum si no
+existe y que regresa el id del álbum
+*/
+func ObtieneAlbum(rola Rola, db *sql.DB) (int, error) {
+     if rola.album == "" {
+     	return 0, nil
+     }
+
+     id, err := BuscaAlbum(rola.album, rola.albumPath, db)
+
+     if err == sql.ErrNoRows {
+         resultado, err := db.Exec(
+             `INSERT INTO albums (name, path, year)
+              VALUES (?, ?, ?)`,
+              rola.album, rola.albumPath, rola.year,
+         )
+         if err != nil {
+             return 0, err
+         }
+         nuevoID, err := resultado.LastInsertId()
+         if err != nil {
+             return 0, err
+         }
+         return int(nuevoID), nil
+     }
+     return id, err
+}
+
+/*
+Función que regresa el id de un álbum
+*/
+func BuscaAlbum(nombre string, ruta string, db *sql.DB) (int, error) {
+     var id int
+
+     err := db.QueryRow(
+         `SELECT id_album
+          FROM albums
+          WHERE name = ? AND path = ?`,
+          nombre, ruta,
+     ).Scan(&id)
+
+     return id, err
+}
 
 /*
 Función que elimina una rola de la bdd mediante su id

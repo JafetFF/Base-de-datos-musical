@@ -73,53 +73,47 @@ func TestBusca(t *testing.T) {
 }
 
 // Prueba unitaria para el método Agrega
-func TestAgrega(t *testing.T) {    
+func TestAgrega(t *testing.T) {
      db := bddPrueba(t)
 
      rola := Rola{
-     	  artist: "Hillsong United",
-     	  title:  "La Revolución",
-	  year:   2006,
-	  genre:  "Pop Rock",
+          artist:    "Hillsong United",
+          album:     "Unidos Permanecemos",
+          albumPath: "/Musica/Hillsong United/Unidos Permanecemos",
+          title:     "La Revolución",
+          year:      2006,
+          genre:     "Pop Rock",
      }
-     
+
      if err := Agrega(rola, db); err != nil {
-	t.Fatalf("No se pudo insertar la rola de prueba: %v", err)
+         t.Fatalf("No se pudo insertar la rola de prueba: %v", err)
      }
 
      var titulo string
      var año int
      var genero string
-     
+     var artista string
+     var album string
+
      err := db.QueryRow(
-     	 `SELECT title, year, genre FROM rolas
-	 WHERE title = ?`, rola.title).Scan(&titulo, &año, &genero)
+         `SELECT r.title, r.year, r.genre, p.name, a.name
+          FROM rolas r
+          JOIN performers p ON r.id_performer = p.id_performer
+          JOIN albums a ON r.id_album = a.id_album
+          WHERE r.title = ?`,
+          rola.title,
+     ).Scan(&titulo, &año, &genero, &artista, &album)
 
      if err != nil {
-     	t.Fatalf("Error al encontrar la rola: %v", err)
+         t.Fatalf("Error al encontrar la rola: %v", err)
      }
 
      if titulo != rola.title ||
-        año != rola.year ||
-	genero != rola.genre {
-     	t.Fatal("No coinciden los datos guardados con los esperados")
-     }
-     
-     var artista string
-     err = db.QueryRow(
-     	 `SELECT name FROM performers
-     	 WHERE id_performer = (
-               SELECT id_performer FROM rolas
-               WHERE title = ?
-     	 )`,
-	 rola.title,
-     ).Scan(&artista)
-
-     if err != nil {
-     	t.Fatalf("Error al encontrar al artista: %v", err)
-     }
-     if artista != rola.artist {
-     	t.Fatalf("Se esperaba %s, pero se obtuvo %s", rola.artist, artista)
+         año != rola.year ||
+         genero != rola.genre ||
+         artista != rola.artist ||
+         album != rola.album {
+         t.Fatal("No coinciden los datos guardados con los esperados")
      }
 }
 
