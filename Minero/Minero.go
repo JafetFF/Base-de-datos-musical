@@ -76,6 +76,28 @@ func LeeEtiquetas(ruta string) (Metadatos, error) {
     datos.genero = metadata.Genre()
     datos.ruta = ruta
     datos.año = metadata.Year()
+    datos.comentarios = metadata.Comment()
+    datos.compositor = metadata.Composer()
+    
+    datos.pista, datos.totalPistas = metadata.Track()
+    datos.numeroDisco, datos.totalDiscos = metadata.Disc()
+
+    raw := metadata.Raw()
+
+    if banda, ok := raw["TPE2"].(string); ok {
+       datos.bandaAlbum = banda
+    }
+    if original, ok := raw["TOPE"].(string); ok {
+       datos.artistaOriginal = original
+    }
+
+    for _, valor := range raw {
+    	imagen, ok := valor.(*tag.Picture)
+    	if !ok {
+           continue
+    	}
+    	datos.imagenes = append(datos.imagenes, imagen.Data)
+    }
 
     return datos, nil
 }
