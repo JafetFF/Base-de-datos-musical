@@ -77,9 +77,10 @@ func TestAgrega(t *testing.T) {
      db := bddPrueba(t)
 
      rola := Rola{
-     	  title: "La Revolución",
-	  year:  2006,
-	  genre: "Pop Rock",
+     	  artist: "Hillsong United",
+     	  title:  "La Revolución",
+	  year:   2006,
+	  genre:  "Pop Rock",
      }
      
      if err := Agrega(rola, db); err != nil {
@@ -102,6 +103,23 @@ func TestAgrega(t *testing.T) {
         año != rola.year ||
 	genero != rola.genre {
      	t.Fatal("No coinciden los datos guardados con los esperados")
+     }
+     
+     var artista string
+     err = db.QueryRow(
+     	 `SELECT name FROM performers
+     	 WHERE id_performer = (
+               SELECT id_performer FROM rolas
+               WHERE title = ?
+     	 )`,
+	 rola.title,
+     ).Scan(&artista)
+
+     if err != nil {
+     	t.Fatalf("Error al encontrar al artista: %v", err)
+     }
+     if artista != rola.artist {
+     	t.Fatalf("Se esperaba %s, pero se obtuvo %s", rola.artist, artista)
      }
 }
 

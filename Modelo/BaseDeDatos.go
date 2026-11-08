@@ -105,14 +105,61 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
 
 /*
 Función que agrega una rola a la bdd
+asegurándose de que el artista no esté
+ya agregado en la base de datos
 */
 func Agrega(rola Rola, db *sql.DB) error {
-     _, err := db.Exec(
-     	`INSERT INTO rolas (title, year, genre)
-	VALUES (?, ?, ?)`, rola.title, rola.year, rola.genre)
+     idPerformer, err := BuscaPerformer(rola.artist, 2, db)
 
+     if err == sql.ErrNoRows {
+     	resultado, err := db.Exec(
+	      `INSERT INTO performers (name, id_type)
+              VALUES (?, ?)`,
+              rola.artist, 2,
+        )
+     	if err != nil {
+     	   return err
+     	}
+
+     	nuevoID, err := resultado.LastInsertId()
+     	if err != nil {
+     	   return err
+        }
+
+     	idPerformer = int(nuevoID)
+
+     } else if err != nil {
+        return err
+     }
+
+     _, err = db.Exec(
+        `INSERT INTO rolas (id_performer, title, path, track, year, genre)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        idPerformer,
+        rola.title,
+        rola.path,
+        rola.track,
+        rola.year,
+        rola.genre,
+     )
      return err
 }
+
+/*
+Función que regresa el id de un artista
+*/
+func BuscaPerformer(nombre string, tipo int, db *sql.DB) (int, error) {
+     var id int
+     err := db.QueryRow(
+         `SELECT id_performer
+         FROM performers
+         WHERE name = ? AND id_type = ?`,
+         nombre, tipo,
+     ).Scan(&id)
+
+     return id, err
+}
+
 
 /*
 Función que elimina una rola de la bdd mediante su id
