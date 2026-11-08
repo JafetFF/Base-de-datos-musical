@@ -12,12 +12,21 @@ import (
 Estructura de los metadatos que se extraerán de cada rola
 */
 type Metadatos struct {
-     titulo  string
-     artista string
-     album   string
-     año     int
-     genero  string
-     ruta    string
+     titulo          string
+     artista         string
+     album           string
+     bandaAlbum      string
+     año             int
+     pista           int
+     totalPistas     int
+     numeroDisco     int
+     totalDiscos     int
+     genero          string
+     comentarios     string
+     compositor      string
+     artistaOriginal string
+     imagenes        [][]byte
+     ruta            string
 }
 
 /*
