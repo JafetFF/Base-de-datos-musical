@@ -30,3 +30,38 @@ func TestBuscaMP3(t *testing.T) {
 	t.Fatalf("Se esperaban 3 canciones, se encontraron %d", len(canciones))
      }
 }
+
+/*
+Prueba Unitaria para el método del minero que lee etiquetas
+*/
+func TestLeeEtiquetas(t *testing.T) {     
+     ruta := "./demo.mp3"
+
+     datos, err := LeeEtiquetas(ruta)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+     if datos.titulo != "T" {
+     	t.Errorf("Título incorrecto: se esperaba T, se obtuvo %s",
+	datos.titulo)
+     }
+     if datos.artista != "A" {
+     	t.Errorf("Artista incorrecto: se esperaba A, se obtuvo %s",
+	datos.artista)
+     }
+     if datos.album != "L" {
+     	t.Errorf("Álbum incorrecto: se esperaba L, se obtuvo %s",
+	datos.album)
+     }
+     if datos.año != 1950 {
+     	t.Errorf("Año incorrecto: se esperaba 1950, se obtuvo %d",
+	datos.año)
+     }
+     if datos.genero != "8" {
+     	t.Errorf("Género incorrecto: se esperaba 8, se obtuvo %s",
+	datos.genero)
+     }
+}
+
+
