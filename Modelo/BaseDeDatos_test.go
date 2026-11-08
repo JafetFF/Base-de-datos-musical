@@ -72,7 +72,7 @@ func TestBusca(t *testing.T) {
      }
 }
 
-// Prueba unitaria para el método Busca
+// Prueba unitaria para el método Agrega
 func TestAgrega(t *testing.T) {    
      db := bddPrueba(t)
 
@@ -122,6 +122,49 @@ func TestAgrega(t *testing.T) {
      	t.Fatalf("Se esperaba %s, pero se obtuvo %s", rola.artist, artista)
      }
 }
+
+/*
+Prueba unitaria que comprueba que no se permitan
+artistas repetidos al agregar varias rolas de un mismo artista
+*/
+func TestAgregaNoDuplicaPerformer(t *testing.T) {
+     db := bddPrueba(t)
+
+     rola1 := Rola{
+         artist: "Skillet",
+         title:  "Hero",
+     }
+
+     rola2 := Rola{
+         artist: "Skillet",
+         title:  "Awake And Alive",
+     }
+
+     if err := Agrega(rola1, db); err != nil {
+         t.Fatal(err)
+     }
+
+     if err := Agrega(rola2, db); err != nil {
+         t.Fatal(err)
+     }
+
+     var cantidad int
+
+     err := db.QueryRow(
+         `SELECT COUNT(*) FROM performers
+          WHERE name = ? AND id_type = ?`,
+         "Skillet", 2,
+     ).Scan(&cantidad)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if cantidad != 1 {
+         t.Fatalf("Se esperaba 1 performer, se encontraron %d", cantidad)
+     }
+}
+
 
 // Prueba unitaria para el método Elimina
 func TestElimina(t *testing.T) {    
