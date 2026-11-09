@@ -155,10 +155,13 @@ func Agrega(rola Rola, db *sql.DB) error {
 }
 
 /*
-Función auxiliar que agrega al artista si no
-existe y que regresa el id del artista
+Función auxiliar que agrega al artista si
+no existe y que regresa el id del artista
 */
 func ObtienePerformer(rola Rola, db EjecutaSQL) (int, error) {
+     if strings.TrimSpace(rola.artist) == "" {
+     	rola.artist = "Unknown"
+     }
      id, err := BuscaPerformer(rola.artist, 2, db)
 
      if err == sql.ErrNoRows {

@@ -293,6 +293,80 @@ func TestAgrega_Rollback(t *testing.T) {
      }
 }
 
+/*
+Prueba unitaria para comprobar que una rola
+sin artista se agrega con artista "Unknown"
+*/ 
+func TestAgregaSinArtista(t *testing.T) {
+     db := bddPrueba(t)
+
+     rola := Rola{
+         title: "Desde Mi Interior",
+         album: "Con Todo",
+         albumPath: "/Musica/Desde Mi Interior/Con Todo",
+         year: 2007,
+         genre: "Pop Rock",
+     }
+
+     err := Agrega(rola, db)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     var cantidad int
+     err = db.QueryRow(`
+         SELECT COUNT(*)
+         FROM performers
+         WHERE name = 'Unknown' AND id_type = 2
+     `).Scan(&cantidad)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+     if cantidad != 1 {
+         t.Errorf("Se esperaba 1 performer Unknown, se encontraron %d", cantidad)
+     }
+}
+
+/*
+Prueba unitaria que comprueba que dos rolas sin
+artistas reutilicen el mismo performer
+*/
+func TestAgregaNoDuplicaUnknown(t *testing.T) {
+     db := bddPrueba(t)
+
+     rolas := []Rola{
+         {
+             title: "Wait For You",
+             year: 2020,
+         },
+         {
+             title: "Hay Otra Salida",
+             year: 2007,
+         },
+     }
+     for _, rola := range rolas {
+         err := Agrega(rola, db)
+         if err != nil {
+             t.Fatal(err)
+         }
+     }
+
+     var cantidad int
+     err := db.QueryRow(`
+         SELECT COUNT(*)
+         FROM performers
+         WHERE name = 'Unknown' AND id_type = 2
+     `).Scan(&cantidad)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+     if cantidad != 1 {
+         t.Errorf("Se esperaba 1 performer Unknown, pero se encontraron %d", cantidad)
+     }
+}
+
 // Prueba unitaria para el método Elimina
 func TestElimina(t *testing.T) {    
      db := bddPrueba(t)
