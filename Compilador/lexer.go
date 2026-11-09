@@ -23,6 +23,20 @@ func (l *Lexer) SigToken() (Token, error) {
      if l.posicion >= len(l.entrada) {
         return Token{Tipo: EOF}, nil
      }
+     if unicode.IsLetter(rune(l.entrada[l.posicion])) {
+     	return Token{Tipo: CAMPO, Valor: l.LeePalabra()}, nil
+     }
+     if unicode.IsDigit(rune(l.entrada[l.posicion])) {
+     	return Token{Tipo: NUMERO, Valor: l.LeeNumero()}, nil
+     }
+     if l.entrada[l.posicion] == '"' {
+     	coso, err := l.LeeCadena()
+	if err != nil {
+	   return Token{}, err
+	}
+     	return Token{Tipo: CADENA, Valor: coso}, nil
+     }
+     
 
      var token Token
 
@@ -88,3 +102,51 @@ func (l * Lexer) OmiteEspacios() {
 	 }
      }
 }
+
+/*
+Función que lee una palabra de la cadena de entrada
+*/
+func (l *Lexer) LeePalabra() string {
+     inicio := l.posicion
+     for ; l.posicion < len(l.entrada); l.posicion++ {
+     	 if !unicode.IsLetter(rune(l.entrada[l.posicion])) &&
+	    l.entrada[l.posicion] != '_'{
+	    break
+	 }
+     }
+     
+     return l.entrada[inicio:l.posicion]
+}
+
+/*
+Función que lee una cadena que será la que
+se busque en el campo correspondiente
+*/
+func (l *Lexer) LeeCadena() (string, error) {
+     inicio := l.posicion+1
+     for ; l.posicion < len(l.entrada); l.posicion++ {
+     	 if l.entrada[l.posicion] == '"' {
+	    break
+	 }
+     }
+     if l.posicion >= len(l.entrada) {
+     	return "", fmt.Errorf("Faltan comillas que cierren")
+     }
+     l.posicion++
+     return l.entrada[inicio:l.posicion-1], nil
+}
+
+/*
+Función que lee un número que será lo que corresponda a
+campos con números como el año o la pista
+*/
+func (l *Lexer) LeeNumero() string {
+     inicio := l.posicion
+     for ; l.posicion < len(l.entrada); l.posicion++ {
+     	 if !unicode.IsDigit(rune(l.entrada[l.posicion])) {
+	    break
+	 }
+     }
+     
+     return l.entrada[inicio:l.posicion]
+}    
