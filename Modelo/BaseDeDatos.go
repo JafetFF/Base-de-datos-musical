@@ -271,7 +271,7 @@ y una rola que se le pasa como parámetro
 supone que la rola existe en la bdd
 */
 func Edita(id int, rola Rola, db *sql.DB) error {
-     _, err := db.Exec(
+     resultado, err := db.Exec(
      	`UPDATE rolas
 	 SET title = ?,
  	     track = ?,
@@ -280,7 +280,17 @@ func Edita(id int, rola Rola, db *sql.DB) error {
 	     WHERE id_rola = ?`,
 	     rola.title, rola.track,
 	     rola.year, rola.genre, id)
-     return err
+     if err != nil {
+     	return err
+     }
+     filasModificadas, err := resultado.RowsAffected()
+     if err != nil {
+     	return err
+     }
+     if filasModificadas == 0 {
+     	return fmt.Errorf("No exite una rola con el ID %d", id)
+     }
+     return nil
 }
 
 /*

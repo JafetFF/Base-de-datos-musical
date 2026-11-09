@@ -520,3 +520,93 @@ func TestEdita(t *testing.T) {
 	t.Fatal("No se modificaron los datos de la rola correctamente")
      }
 }
+
+/*
+Prueba Unitaria para comprobar que se arroja un
+error al intentar editar una rola inexistente
+*/
+func TestEditaInexistente(t *testing.T) {
+     db := bddPrueba(t)
+
+     modificada := Rola{
+         title: "What I've Done",
+         track: 6,
+         year: 2007,
+         genre: "Hard Rock",
+     }
+
+     err := Edita(1234, modificada, db)
+
+     if err == nil {
+         t.Fatal("Se esperaba un error al editar una rola inexistente")
+     }
+}
+
+/*
+Prueba unitaria para verificar que efectivamente
+editar una rola no afecta a las demás rolas
+*/
+func TestEditaNoModificaOtrasRolas(t *testing.T) {
+     db := bddPrueba(t)
+
+     rolas := []Rola{
+         {
+             title: "Quizá",
+             track: 2,
+             year: 2010,
+             genre: "Balada pop",
+         },
+         {
+             title: "Need Your Love",
+             track: 5,
+             year: 2003,
+             genre: "Pop Rock",
+         },
+     }
+
+     for _, rola := range rolas {
+         if err := Agrega(rola, db); err != nil {
+           t.Fatal(err)
+         }
+     }
+
+     var id int
+     err := db.QueryRow(
+         `SELECT id_rola FROM rolas WHERE title = ?`,
+         "Quizá",
+     ).Scan(&id)
+
+     if err != nil {
+         t.Fatal(err)
+     } 
+
+     modificada := Rola{
+         title: "What I've Done",
+         track: 6,
+         year: 2007,
+         genre: "Hard Rock",
+     }
+
+     if err := Edita(id, modificada, db); err != nil {
+         t.Fatal(err)
+     } 
+
+     var res Rola
+     err = db.QueryRow(
+         `SELECT title, track, year, genre
+          FROM rolas
+          WHERE title = ?`,
+         "Need Your Love",
+     ).Scan(&res.title, &res.track, &res.year, &res.genre)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if res.title != "Need Your Love" ||
+        res.track != 5 ||
+        res.year != 2003 ||
+        res.genre != "Pop Rock" {
+        t.Fatal("Se modificó una rola que no era")
+     }
+}
