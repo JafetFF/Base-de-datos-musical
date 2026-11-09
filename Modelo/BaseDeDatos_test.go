@@ -397,7 +397,67 @@ func TestElimina(t *testing.T) {
      }
 
      if ocurrencias != 0 {
-     	t.Fatal("La rola no fue eliminada")
+     	t.Errorf("Se esperaba 0 coincidencias pero se encontraron %d", ocurrencias)
+     }
+}
+
+/*
+Prueba Unitaria para comprobar que da error
+al intentar eliminar una rola que no existe
+*/
+func TestEliminaInexistente(t *testing.T) {
+     db := bddPrueba(t)
+
+     err := Elimina(777, db)
+     if err == nil {
+         t.Error("Se esperaba un error al eliminar una rola que no existe")
+     }
+}
+
+/*
+Prueba Unitaria para ver que eliminar una rola
+no afecta a las demás rolas de un mismo artista
+*/
+func TestEliminaNoAfectaOtrasRolas(t *testing.T) {
+     db := bddPrueba(t)
+
+     rolas := []Rola{
+         {title: "Call To Me", artist: "RIDERS"},
+         {title: "Fake Fix", artist: "RIDERS"},
+     }
+
+     for _, rola := range rolas {
+         err := Agrega(rola, db)
+         if err != nil {
+             t.Fatal(err)
+         }
+     }
+
+     var id int
+     err := db.QueryRow(
+         `SELECT id_rola FROM rolas WHERE title = ?`,
+         "Call To Me",
+     ).Scan(&id)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     err = Elimina(id, db)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     var cantidad int
+     err = db.QueryRow(
+         `SELECT COUNT(*) FROM rolas WHERE title = ?`,
+         "Fake Fix",
+     ).Scan(&cantidad)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if cantidad != 1 {
+         t.Errorf("Se esperaba que quedara 1 rola, y se encontraron %d", cantidad)
      }
 }
 

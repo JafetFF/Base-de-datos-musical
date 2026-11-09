@@ -247,10 +247,22 @@ Función que elimina una rola de la bdd mediante su id
 ya que el título podría repetirse
 */
 func Elimina(id int, db *sql.DB) error {
-     _, err := db.Exec(
+     result, err := db.Exec(
      	`DELETE FROM rolas WHERE id_rola = ?`, id)
 
-     return err
+     if err != nil {
+     	return err
+     }
+
+     filasModificadas, err := result.RowsAffected()
+     if err != nil {
+	return err
+     }
+     if filasModificadas == 0 {
+     	return fmt.Errorf("No existe un rola con el ID %d", id)
+     }    
+
+     return nil
 }
 
 /*
