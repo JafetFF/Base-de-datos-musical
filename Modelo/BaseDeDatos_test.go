@@ -232,6 +232,67 @@ func TestAgregaNoDuplicaAlbum(t *testing.T) {
      }
 }
 
+/*
+Prueba Unitaria para comprobar que realmente
+sirve el rollback del método agrega
+*/
+func TestAgrega_Rollback(t *testing.T) {
+     db := bddPrueba(t)
+
+     _, err := db.Exec(`
+         CREATE TRIGGER falla_insercion_rola
+         BEFORE INSERT ON rolas
+         BEGIN
+             SELECT RAISE(ABORT, 'error a propósito');
+         END;
+     `)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     rola := Rola{
+         artist:    "Hillsong",
+         album:     "Hillsong Young & Free - Topic",
+         albumPath: "/Musica/Hillsong/Hillsong Young & Free - Topic",
+         title:     "Vida Tú Me Das",
+         year:      2007,
+         genre:     "Pop Rock",
+     }
+
+     err = Agrega(rola, db)
+     if err == nil {
+         t.Fatal("Se esperaba un error al agregar la rola")
+     }
+
+     var artistas int
+     err = db.QueryRow(`
+         SELECT COUNT(*)
+         FROM performers
+         WHERE name = 'Hillsong'
+     `).Scan(&artistas)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if artistas != 0 {
+         t.Errorf("Se esperaba 0 artistas, se encontraron %d", artistas)
+     }
+
+     var albumes int
+     err = db.QueryRow(`
+         SELECT COUNT(*)
+         FROM albums
+         WHERE name = 'Hillsong Young & Free - Topic'
+     `).Scan(&albumes)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if albumes != 0 {
+         t.Errorf("Se esperaba 0 álbumes pero se encontraron %d", albumes)
+     }
+}
+
 // Prueba unitaria para el método Elimina
 func TestElimina(t *testing.T) {    
      db := bddPrueba(t)

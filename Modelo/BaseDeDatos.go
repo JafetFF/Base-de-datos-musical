@@ -10,6 +10,16 @@ import (
 )
 
 /*
+Interface que permite utilizar
+*sql.DB y *sql.Tx en las funciones
+necesarias 
+*/
+type EjecutaSQL interface {
+     Exec(query string, args ...any) (sql.Result, error)
+     QueryRow(query string, args ...any) *sql.Row
+}
+
+/*
 Función principal que permite abrir la base de datos
 */
 func main() {
@@ -109,17 +119,24 @@ asegurándose de que el artista no esté
 ya agregado en la base de datos
 */
 func Agrega(rola Rola, db *sql.DB) error {
-     idPerformer, err := ObtienePerformer(rola, db)
+     tx, err := db.Begin()
      if err != nil {
      	return err
      }
 
-     idAlbum, err := ObtieneAlbum(rola, db)
+     defer tx.Rollback()
+     
+     idPerformer, err := ObtienePerformer(rola, tx)
      if err != nil {
      	return err
      }
 
-     _, err = db.Exec(
+     idAlbum, err := ObtieneAlbum(rola, tx)
+     if err != nil {
+     	return err
+     }
+
+     _, err = tx.Exec(
         `INSERT INTO rolas (id_performer, id_album, title, path, track, year, genre)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         idPerformer,
@@ -130,14 +147,18 @@ func Agrega(rola Rola, db *sql.DB) error {
         rola.year,
         rola.genre,
      )
-     return err
+
+     if err != nil {
+     	return err
+     }
+     return tx.Commit()
 }
 
 /*
 Función auxiliar que agrega al artista si no
 existe y que regresa el id del artista
 */
-func ObtienePerformer(rola Rola, db *sql.DB) (int, error) {
+func ObtienePerformer(rola Rola, db EjecutaSQL) (int, error) {
      id, err := BuscaPerformer(rola.artist, 2, db)
 
      if err == sql.ErrNoRows {
@@ -161,7 +182,7 @@ func ObtienePerformer(rola Rola, db *sql.DB) (int, error) {
 /*
 Función que regresa el id de un artista
 */
-func BuscaPerformer(nombre string, tipo int, db *sql.DB) (int, error) {
+func BuscaPerformer(nombre string, tipo int, db EjecutaSQL) (int, error) {
      var id int
      err := db.QueryRow(
          `SELECT id_performer
@@ -177,7 +198,7 @@ func BuscaPerformer(nombre string, tipo int, db *sql.DB) (int, error) {
 Función auxiliar que agrega el álbum si no
 existe y que regresa el id del álbum
 */
-func ObtieneAlbum(rola Rola, db *sql.DB) (int, error) {
+func ObtieneAlbum(rola Rola, db EjecutaSQL) (int, error) {
      if rola.album == "" {
      	return 0, nil
      }
@@ -205,7 +226,7 @@ func ObtieneAlbum(rola Rola, db *sql.DB) (int, error) {
 /*
 Función que regresa el id de un álbum
 */
-func BuscaAlbum(nombre string, ruta string, db *sql.DB) (int, error) {
+func BuscaAlbum(nombre string, ruta string, db EjecutaSQL) (int, error) {
      var id int
 
      err := db.QueryRow(
