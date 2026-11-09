@@ -189,6 +189,48 @@ func TestAgregaNoDuplicaPerformer(t *testing.T) {
      }
 }
 
+/*
+Prueba unitaria que comprueba que no se permitan
+álbumes repetidos al agregar varias rolas de un mismo álbum
+*/
+func TestAgregaNoDuplicaAlbum(t *testing.T) {
+     db := bddPrueba(t)
+
+     rola1 := Rola{
+         artist:    "Edgar Lira",
+         album:     "Morir a Mí (En Vivo)",
+         albumPath: "/Musica/Edgar Lira/Morir a Mí (En Vivo)",
+         title:     "Entre el Cielo y el Fuego",
+     }
+     rola2 := Rola{
+         artist:    "Edgar lira",
+         album:     "Morir a Mí (En Vivo)",
+         albumPath: "/Musica/Edgar Lira/Morir a Mí (En Vivo)",
+         title:     "Déjate Amar",
+     }
+
+     if err := Agrega(rola1, db); err != nil {
+         t.Fatal(err)
+     }
+     if err := Agrega(rola2, db); err != nil {
+         t.Fatal(err)
+     }
+
+     var cantidad int
+     err := db.QueryRow(
+         `SELECT COUNT(*) FROM albums
+          WHERE name = ? AND path = ?`,
+          rola1.album, rola1.albumPath,
+     ).Scan(&cantidad)
+
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if cantidad != 1 {
+         t.Fatalf("Se esperaba 1 álbum, pero se encontraron %d", cantidad)
+     }
+}
 
 // Prueba unitaria para el método Elimina
 func TestElimina(t *testing.T) {    
