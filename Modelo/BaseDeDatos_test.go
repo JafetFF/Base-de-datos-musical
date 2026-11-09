@@ -72,6 +72,89 @@ func TestBusca(t *testing.T) {
      }
 }
 
+/*
+Prueba Unitaria para verificar que si se
+hace una búsqueda y no hay coincidencias,
+entonces no se devuelve ni error ni resultado
+*/
+func TestBuscaSinResultados(t *testing.T) {
+     db := bddPrueba(t)
+
+     rolas, err := Busca("Algo", db)
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 0 {
+         t.Fatalf("Se esperaban 0 resultados, se encontraron %d", len(rolas))
+     }
+}
+
+/*
+Prueba Unitaria que comprueba que podemos
+encontrar una rola con solo una parte del título
+*/
+func TestBusquedaParcial(t *testing.T) {
+     db := bddPrueba(t)
+
+     _, err := db.Exec(
+         `INSERT INTO rolas (title, year, genre)
+          VALUES (?, ?, ?)`,
+         "Rola específica", 1500, "Indie",
+     )
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     rolas, err := Busca("Rola", db)
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error %v", err)
+     }
+
+     if len(rolas) != 1 {
+         t.Fatalf("Se esperaba 1 resultado, pero se encontraron %d", len(rolas))
+     }
+
+     if rolas[0].title != "Rola específica" {
+         t.Errorf("Se encontró %q en lugar de Rola específica", rolas[0].title)
+     }
+}
+
+/*
+Prueba unitaria que comprueba que podemos
+encontrar varios resultados a partir de una
+misma búsqueda
+*/
+func TestBusquedaMultiple(t *testing.T) {
+     db := bddPrueba(t)
+
+     titulos := []string{
+         "Wait For You",
+         "Wait For The Moment",
+         "Wait For The Day",
+     }
+
+     for _, titulo := range titulos {
+         _, err := db.Exec(
+             `INSERT INTO rolas (title, year, genre) VALUES (?, ?, ?)`,
+             titulo, 2026, "Pop",
+         )
+         if err != nil {
+             t.Fatal(err)
+         }
+     }
+
+     rolas, err := Busca("Wait", db)
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error %v", err)
+     }
+
+     if len(rolas) != len(titulos) {
+         t.Fatalf("Se esperaban %d resultados, se encontraron %d",
+             len(titulos), len(rolas))
+     }
+}
+
 // Prueba unitaria para el método Agrega
 func TestAgrega(t *testing.T) {
      db := bddPrueba(t)
