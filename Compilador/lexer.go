@@ -29,7 +29,7 @@ func (l *Lexer) SigToken() (Token, error) {
      if unicode.IsDigit(rune(l.entrada[l.posicion])) {
      	return Token{Tipo: NUMERO, Valor: l.LeeNumero()}, nil
      }
-     if l.entrada[l.posicion] == '"' {
+     if l.entrada[l.posicion] == '"' {   
      	coso, err := l.LeeCadena()
 	if err != nil {
 	   return Token{}, err
@@ -123,7 +123,8 @@ Función que lee una cadena que será la que
 se busque en el campo correspondiente
 */
 func (l *Lexer) LeeCadena() (string, error) {
-     inicio := l.posicion+1
+     l.posicion++
+     inicio := l.posicion
      for ; l.posicion < len(l.entrada); l.posicion++ {
      	 if l.entrada[l.posicion] == '"' {
 	    break
