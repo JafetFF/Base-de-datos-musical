@@ -89,12 +89,12 @@ func (t *Traductor) Traduce(nodo Nodo) (string, []any, error) {
 	  return cads, params, nil
 	  
      case *Negacion:
-     	  /*
-     	  c, p, err := Traduce(n.Expresion)
+     	  cad, params, err := t.Traduce(n.Expresion)
 	  if err != nil {
 	     return "", nil, err
 	  }
-	  return */
+	  cadnot := "NOT (" + cad + ")"
+	  return cadnot, params, nil
 
      default:
      

@@ -217,3 +217,109 @@ func TestTraduceOperacionesAnidadas(t *testing.T) {
 	 parametrosEsperados, parametros)
      }
 }
+
+/*
+Prueba unitaria para comprobar que se
+traduce correctamente un caso simple
+*/
+func TestTraduceNegacion(t *testing.T) {
+     traductor := Traductor{}
+
+     nodo := &Negacion{
+         Expresion: &Condicion{
+             Campo:    "genre",
+             Operador: "=",
+             Valor:    "Pop",
+         },
+     }
+
+     sql, parametros, err := traductor.Traduce(nodo)
+     if err != nil {
+         t.Fatalf("Error al traducir: %v", err)
+     }
+
+     esperado := "NOT (rolas.genre = ?)"
+     if sql != esperado {
+         t.Errorf("SQL esperado %q, pero se obtuvo %q", esperado, sql)
+     }
+
+     parametrosEsperados := []any{"Pop"}
+     if !slices.Equal(parametros, parametrosEsperados) {
+         t.Errorf("Parámetros esperados %v, y se obtuvieron %v",
+	 parametrosEsperados, parametros)
+     }
+}
+
+/*
+Prueba unitaria para verificar que se traduce
+correctamente el caso de negación y AND
+*/
+func TestTraduceNegacionAND(t *testing.T) {
+     traductor := Traductor{}
+
+     nodo := &Negacion{
+         Expresion: &OperacionLogica{
+             Operador: "&",
+             Izquierdo: &Condicion{
+                 Campo:    "title",
+                 Operador: "=",
+                 Valor:    "Guerrero",
+             },
+             Derecho: &Condicion{
+                 Campo:    "year",
+                 Operador: ">=",
+                 Valor:    "2009",
+             },
+         },
+     }
+
+     sql, parametros, err := traductor.Traduce(nodo)
+     if err != nil {
+         t.Fatalf("Error inesperado: %v", err)
+     }
+
+     esperado := "NOT ((rolas.title = ? AND rolas.year >= ?))"
+     if sql != esperado {
+         t.Errorf("SQL esperado %q, pero se obtuvo %q", esperado, sql)
+     }
+
+     parametrosEsperados := []any{"Guerrero", "2009"}
+     if !slices.Equal(parametros, parametrosEsperados) {
+         t.Errorf("Parámetros esperados %v, y se obtuvieron %v",
+         parametrosEsperados, parametros)
+     }
+}
+
+/*
+Prueba unitaria para verificar que se traduce
+correctamente el caso de tener más de una Negacion
+*/
+func TestTraduceNegacionesMultiple(t *testing.T) {
+     traductor := Traductor{}
+
+     nodo := &Negacion{
+         Expresion: &Negacion{
+             Expresion: &Condicion{
+                 Campo:    "genre",
+                 Operador: "=",
+                 Valor:    "Indie",
+             },
+         },
+     }
+
+     sql, parametros, err := traductor.Traduce(nodo)
+     if err != nil {
+         t.Fatalf("Error al traducir: %v", err)
+     }
+
+     esperado := "NOT (NOT (rolas.genre = ?))"
+     if sql != esperado {
+         t.Errorf("SQL esperado %q, pero se obtuvo %q", esperado, sql)
+     }
+
+     parametrosEsperados := []any{"Indie"}
+     if !slices.Equal(parametros, parametrosEsperados) {
+         t.Errorf("Parámetros esperados %v, y se obtuvieron %v",
+         parametrosEsperados, parametros)
+     }
+}
