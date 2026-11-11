@@ -431,3 +431,91 @@ func TestVerificaTipo(t *testing.T) {
          })
      }
 }
+
+/*
+Prueba unitaria para el método ConstruyeConsulta()
+*/
+func TestConstruyeConsulta(t *testing.T) {
+     traductor := Traductor{}
+
+     pruebas := []struct {
+         nombre       string
+         nodo         Nodo
+         esperadoSQL  string
+         esperadoArgs []any
+     }{
+         {
+             nombre: "Sin JOIN",
+             nodo: &Condicion{
+                 Campo:     "title",
+                 Operador:  "=",
+                 Valor:     "Eyes On You",
+                 TipoValor: CADENA,
+             },
+             esperadoSQL: "SELECT rolas.* FROM rolas WHERE rolas.title = ?",
+             esperadoArgs: []any{"Eyes On You"},
+         },
+         {
+             nombre: "JOIN performers",
+             nodo: &Condicion{
+                 Campo:     "artist",
+                 Operador:  "=",
+                 Valor:     "Lovkn",
+                 TipoValor: CADENA,
+             },
+             esperadoSQL: "SELECT rolas.* FROM rolas JOIN performers ON rolas.id_performer = performers.id_performer WHERE performers.name = ?",
+             esperadoArgs: []any{"Lovkn"},
+         },
+         {
+             nombre: "JOIN albums",
+             nodo: &Condicion{
+                 Campo:     "album",
+                 Operador:  "=",
+                 Valor:     "Hits",
+                 TipoValor: CADENA,
+             },
+             esperadoSQL: "SELECT rolas.* FROM rolas JOIN albums ON rolas.id_album = albums.id_album WHERE albums.name = ?",
+             esperadoArgs: []any{"Hits"},
+         },
+         {
+             nombre: "Dos JOIN",
+             nodo: &OperacionLogica{
+                 Operador: "&",
+                 Izquierdo: &Condicion{
+                     Campo:     "artist",
+                     Operador:  "=",
+                     Valor:     "Alfonso Peduto",
+                     TipoValor: CADENA,
+                 },
+                 Derecho: &Condicion{
+                     Campo:     "album",
+                     Operador:  "=",
+                     Valor:     "Binary Data IX",
+                     TipoValor: CADENA,
+                 },
+             },
+             esperadoSQL: "SELECT rolas.* FROM rolas JOIN albums ON rolas.id_album = albums.id_album JOIN performers ON rolas.id_performer = performers.id_performer WHERE (performers.name = ? AND albums.name = ?)",
+             esperadoArgs: []any{"Alfonso Peduto", "Binary Data IX"},
+         },
+     }
+
+     for _, prueba := range pruebas {
+         t.Run(prueba.nombre, func(t *testing.T) {
+             sql, args, err := traductor.ConstruyeConsulta(prueba.nodo)
+
+             if err != nil {
+                 t.Fatalf("Error al construir la consulta: %v", err)
+             }
+
+             if sql != prueba.esperadoSQL {
+                 t.Errorf("SQL esperado: \n%s \nSQL obtenido: \n%s",
+                 prueba.esperadoSQL, sql)
+             }
+
+             if !slices.Equal(args, prueba.esperadoArgs) {
+                 t.Errorf("Parámetros esperados %v, obtenidos %v",
+                 prueba.esperadoArgs, args)
+             }
+         })
+     }
+}

@@ -69,6 +69,23 @@ var tiposPorCampo = map[string]TipoToken{
     "group_end":   CADENA,
 }
 
+// Los posibles Joins que se pueden hacer
+var joinsPosibles = map[string]string{
+    "performers": "JOIN performers ON rolas.id_performer = performers.id_performer",
+    "albums":     "JOIN albums ON rolas.id_album = albums.id_album",
+}
+
+// Correspondencia de joins por campo
+var joinsPorCampo = map[string][]string{
+    "title":  {},
+    "year":   {},
+    "track":  {},
+    "genre":  {},
+    "path":   {},
+    "artist": {"performers"},
+    "album":  {"albums"},
+}
+
 /*
 Función que traduce un nodo, tratando cada caso según
 sea una Condicion, OperacionLogica, Negacion u otro
@@ -165,5 +182,90 @@ func verificaTipo(c *Condicion) error {
      	return fmt.Errorf("El tipo del valor no corresponde con el campo")
      }
      return nil
+}
+
+/*
+Función que regresa los joins a partir de un Nodo
+*/
+func obtieneJoins(n Nodo) ([]string, error) {
+     uniones := make(map[string]bool)
+
+     var recorre func(Nodo) error
+
+     recorre = func(n Nodo) error {
+         switch nodo := n.(type) {
+         case *Condicion:
+             joins, ok := joinsPorCampo[nodo.Campo]
+             if !ok {
+                 return fmt.Errorf("No se conocen las uniones del campo %s", nodo.Campo)
+             }
+
+             for _, join := range joins {
+                 uniones[join] = true
+             } 
+
+         case *OperacionLogica:
+             if err := recorre(nodo.Izquierdo); err != nil {
+                 return err
+             }
+
+             if err := recorre(nodo.Derecho); err != nil {
+                 return err
+             }
+
+         case *Negacion:
+             if err := recorre(nodo.Expresion); err != nil {
+                 return err
+             }
+
+         default:
+             return fmt.Errorf("Tipo de Nodo desconocido: %T", n)
+         }
+
+         return nil
+     }
+
+     if err := recorre(n); err != nil {
+         return nil, err
+     }
+
+     resultado := []string{}
+
+     for join := range uniones {
+         resultado = append(resultado, join)
+     }
+
+     slices.Sort(resultado)
+     return resultado, nil
+}
+
+/*
+Función que construye una consulta SQL
+a partir de un Nodo
+*/
+func (t *Traductor) ConstruyeConsulta(n Nodo) (string, []any, error) {
+     joins, err := obtieneJoins(n)
+     if err != nil {
+         return "", nil, err
+     }
+
+     where, parametros, err := t.Traduce(n)
+     if err != nil {
+         return "", nil, err
+     }
+
+     consulta := "SELECT rolas.* FROM rolas"
+
+     for _, join := range joins {
+         sqlJoin, ok := joinsPosibles[join]
+         if !ok {
+             return "", nil, fmt.Errorf("Join desconocido: %s", join)
+         }
+
+         consulta += " " + sqlJoin
+     }
+
+     consulta += " WHERE " + where
+     return consulta, parametros, nil
 }
 
