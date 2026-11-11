@@ -136,7 +136,16 @@ func Agrega(rola Rola, db *sql.DB) error {
      }
 
      defer tx.Rollback()
-     
+
+     if strings.TrimSpace(rola.path) != "" {
+     	existe, err := ExisteRola(rola.path, tx)
+     	if err != nil {
+     	   return nil
+        }
+     	if existe {
+     	   return nil
+        }
+     }
      idPerformer, err := ObtienePerformer(rola, tx)
      if err != nil {
      	return err
@@ -163,6 +172,19 @@ func Agrega(rola Rola, db *sql.DB) error {
      	return err
      }
      return tx.Commit()
+}
+
+/*
+Función auxiliar que verifica si una rola ya se encuentra en la bdd
+*/
+func ExisteRola(ruta string, db EjecutaSQL) (bool, error) {
+     var existe bool
+
+     err := db.QueryRow(
+         `SELECT EXISTS(SELECT 1 FROM rolas WHERE path = ?)`, ruta,
+     ).Scan(&existe)
+
+     return existe, err
 }
 
 /*

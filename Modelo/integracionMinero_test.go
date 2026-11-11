@@ -3,6 +3,8 @@ package main
 import (
        "testing"
        "reflect"
+       "os"
+       "path/filepath"
        minero "Song/Minero"
 )
 
@@ -95,5 +97,45 @@ func TestMinaYAgrega(t *testing.T) {
 
      if rola.year != 1950 {
          t.Errorf("Año incorrecto: se esperaba 1950, se obtuvo %d", rola.year)
+     }
+}
+
+/*
+Test que verifica que MinaYAgrega no duplica
+una canción después de llamar al minero más
+de una vez
+*/
+func TestMinaYAgregaNoDuplica(t *testing.T) {
+     db := bddPrueba(t)
+
+     directorio := t.TempDir()
+
+     contenido, err := os.ReadFile("../Minero/demo.mp3")
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     ruta := filepath.Join(directorio, "demo.mp3")
+
+     err = os.WriteFile(ruta, contenido, 0600)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if err := MinaYAgrega(directorio, db); err != nil {
+         t.Fatal(err)
+     }
+
+     if err := MinaYAgrega(directorio, db); err != nil {
+         t.Fatal(err)
+     }
+
+     rolas, err := Busca("T", db)
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if len(rolas) != 1 {
+         t.Fatalf("se esperaba 1 canción, se encontraron %d", len(rolas))
      }
 }
