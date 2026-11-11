@@ -19,13 +19,6 @@ var camposPermitidos = map[string]string{
     "album":       "albums.name",
     "album_path":  "albums.path",
     "album_year":  "albums.year",
-    "stage_name":  "persons.stage_name",
-    "real_name":   "persons.real_name",
-    "birth_date":  "persons.birth_date",
-    "death_date":  "persons.death_date",
-    "group_name":  "groups.name",
-    "group_start": "groups.start_date",
-    "group_end":   "groups.end_date",
 }
 
 // Operadores que se pueden recibir para realizar búsquedas
@@ -60,13 +53,6 @@ var tiposPorCampo = map[string]TipoToken{
     "album":       CADENA,
     "album_path":  CADENA,
     "album_year":  NUMERO,
-    "stage_name":  CADENA,
-    "real_name":   CADENA,
-    "birth_date":  CADENA,
-    "death_date":  CADENA,
-    "group_name":  CADENA,
-    "group_start": CADENA,
-    "group_end":   CADENA,
 }
 
 // Los posibles Joins que se pueden hacer
@@ -244,26 +230,26 @@ Función que construye una consulta SQL
 a partir de un Nodo
 */
 func (t *Traductor) ConstruyeConsulta(n Nodo) (string, []any, error) {
-     joins, err := obtieneJoins(n)
-     if err != nil {
-         return "", nil, err
-     }
-
      where, parametros, err := t.Traduce(n)
      if err != nil {
          return "", nil, err
      }
 
-     consulta := "SELECT rolas.* FROM rolas"
-
-     for _, join := range joins {
-         sqlJoin, ok := joinsPosibles[join]
-         if !ok {
-             return "", nil, fmt.Errorf("Join desconocido: %s", join)
-         }
-
-         consulta += " " + sqlJoin
-     }
+     consulta := `SELECT
+    	      	  rolas.id_rola,
+    	      	  rolas.id_performer,
+    	      	  rolas.id_album,
+    	      	  performers.name,
+    	      	  albums.name,
+    	      	  albums.path,
+    	      	  rolas.title,
+		  rolas.path,
+    	      	  rolas.track,
+    	      	  rolas.year,
+    	     	  rolas.genre
+	      	  FROM rolas
+	      	  JOIN performers ON rolas.id_performer = performers.id_performer
+	      JOIN albums ON rolas.id_album = albums.id_album`
 
      consulta += " WHERE " + where
      return consulta, parametros, nil

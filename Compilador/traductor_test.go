@@ -452,7 +452,21 @@ func TestConstruyeConsulta(t *testing.T) {
                  Valor:     "Eyes On You",
                  TipoValor: CADENA,
              },
-             esperadoSQL: "SELECT rolas.* FROM rolas WHERE rolas.title = ?",
+             esperadoSQL: `SELECT
+    	      	  rolas.id_rola,
+    	      	  rolas.id_performer,
+    	      	  rolas.id_album,
+    	      	  performers.name,
+    	      	  albums.name,
+    	      	  albums.path,
+    	      	  rolas.title,
+		  rolas.path,
+    	      	  rolas.track,
+    	      	  rolas.year,
+    	     	  rolas.genre
+	      	  FROM rolas
+	      	  JOIN performers ON rolas.id_performer = performers.id_performer
+	      JOIN albums ON rolas.id_album = albums.id_album WHERE rolas.title = ?`,
              esperadoArgs: []any{"Eyes On You"},
          },
          {
@@ -463,7 +477,21 @@ func TestConstruyeConsulta(t *testing.T) {
                  Valor:     "Lovkn",
                  TipoValor: CADENA,
              },
-             esperadoSQL: "SELECT rolas.* FROM rolas JOIN performers ON rolas.id_performer = performers.id_performer WHERE performers.name = ?",
+             esperadoSQL: `SELECT
+    	      	  rolas.id_rola,
+    	      	  rolas.id_performer,
+    	      	  rolas.id_album,
+    	      	  performers.name,
+    	      	  albums.name,
+    	      	  albums.path,
+    	      	  rolas.title,
+		  rolas.path,
+    	      	  rolas.track,
+    	      	  rolas.year,
+    	     	  rolas.genre
+	      	  FROM rolas
+	      	  JOIN performers ON rolas.id_performer = performers.id_performer
+	      JOIN albums ON rolas.id_album = albums.id_album WHERE performers.name = ?`,
              esperadoArgs: []any{"Lovkn"},
          },
          {
@@ -474,7 +502,21 @@ func TestConstruyeConsulta(t *testing.T) {
                  Valor:     "Hits",
                  TipoValor: CADENA,
              },
-             esperadoSQL: "SELECT rolas.* FROM rolas JOIN albums ON rolas.id_album = albums.id_album WHERE albums.name = ?",
+             esperadoSQL: `SELECT
+    	      	  rolas.id_rola,
+    	      	  rolas.id_performer,
+    	      	  rolas.id_album,
+    	      	  performers.name,
+    	      	  albums.name,
+    	      	  albums.path,
+    	      	  rolas.title,
+		  rolas.path,
+    	      	  rolas.track,
+    	      	  rolas.year,
+    	     	  rolas.genre
+	      	  FROM rolas
+	      	  JOIN performers ON rolas.id_performer = performers.id_performer
+	      JOIN albums ON rolas.id_album = albums.id_album WHERE albums.name = ?`,
              esperadoArgs: []any{"Hits"},
          },
          {
@@ -494,7 +536,21 @@ func TestConstruyeConsulta(t *testing.T) {
                      TipoValor: CADENA,
                  },
              },
-             esperadoSQL: "SELECT rolas.* FROM rolas JOIN albums ON rolas.id_album = albums.id_album JOIN performers ON rolas.id_performer = performers.id_performer WHERE (performers.name = ? AND albums.name = ?)",
+             esperadoSQL: `SELECT
+    	      	  rolas.id_rola,
+    	      	  rolas.id_performer,
+    	      	  rolas.id_album,
+    	      	  performers.name,
+    	      	  albums.name,
+    	      	  albums.path,
+    	      	  rolas.title,
+		  rolas.path,
+    	      	  rolas.track,
+    	      	  rolas.year,
+    	     	  rolas.genre
+	      	  FROM rolas
+	      	  JOIN performers ON rolas.id_performer = performers.id_performer
+	      JOIN albums ON rolas.id_album = albums.id_album WHERE (performers.name = ? AND albums.name = ?)`,
              esperadoArgs: []any{"Alfonso Peduto", "Binary Data IX"},
          },
      }

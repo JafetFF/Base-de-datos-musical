@@ -7,6 +7,7 @@ import (
        "strings"
        "os"
        _ "modernc.org/sqlite"
+       "Song/Compilador"
 )
 
 /*
@@ -50,15 +51,14 @@ func RecibeInstruccion(db *sql.DB) {
 	    fmt.Println("Debes indicar una acción a realizar con al menos una cadena")
 	    return
 	 }
-	 cadena := strings.Join(result[1:]," ")
+	 // cadena := strings.Join(result[1:]," ")
 	 switch result[0] {
-	 case "search":
+	 case "search": /*
 	    rolas, err := Busca(cadena, db)
 	    if err != nil {
 	       fmt.Printf("Error al buscar las rolas: %v\n", err)
 	       return
-	    }
-	    MuestraRolas(rolas)
+	    }*/
 	 case "add":
 	 // de alguna manera recibe la rola
 	    // Agrega(rola, db)
@@ -294,12 +294,62 @@ func Edita(id int, rola Rola, db *sql.DB) error {
 }
 
 /*
-Función que muestra los resultados encontrados en la bdd
+Función que usa el compilador para hacer una
+búsqueda y ejecutarla en la base de datos
 */
-func MuestraRolas(rolas []Rola) {
-     // Muestra rolas
-     //for _, rola := range rolas {
-     // cada cancion del arreglo recibido
-     // fmt.Printf("%d | %s | %s | %", rola.id)
-     //	    }
+func BuscaCompilada(cadena string, db *sql.DB) ([]Rola, error) {
+     lexer := compilador.NewLexer(cadena)
+     parser, err := compilador.NewParser(lexer)
+     if err != nil {
+         return nil, err
+     }
+
+     nodo, err := parser.Parsea()
+     if err != nil {
+         return nil, err
+     }
+
+     traductor := compilador.Traductor{}
+     consulta, parametros, err := traductor.ConstruyeConsulta(nodo)
+     if err != nil {
+         return nil, err
+     }
+
+     filas, err := db.Query(consulta, parametros...)
+     if err != nil {
+         return nil, err
+     }
+     defer filas.Close()
+
+    var rolas []Rola
+
+    for filas.Next() {
+    	var rola Rola
+
+    	err := filas.Scan(
+            &rola.id,
+            &rola.idPerformer,
+            &rola.idAlbum,
+            &rola.artist,
+            &rola.album,
+            &rola.albumPath,
+            &rola.title,
+            &rola.path,
+	    &rola.track,
+            &rola.year,
+            &rola.genre,
+    	)
+
+    	if err != nil {
+           return nil, err
+    	}
+
+    	rolas = append(rolas, rola)
+    }
+
+    if err := filas.Err(); err != nil {
+       return nil, err
+    }
+
+    return rolas, nil
 }

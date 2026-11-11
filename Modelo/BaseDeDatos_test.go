@@ -693,3 +693,180 @@ func TestEditaNoModificaOtrasRolas(t *testing.T) {
         t.Fatal("Se modificó una rola que no era")
      }
 }
+
+/*
+Función auxiliar que inserta datos de prueba
+en la base de datos temporal
+*/
+func insertaDatosDeIntegracion(t *testing.T, db *sql.DB) {
+     t.Helper()
+
+     _, err := db.Exec(`
+         INSERT INTO performers VALUES
+         (1, 0, 'Eiro Nareth'),
+         (2, 1, 'Bernth')
+     `)
+     if err != nil {
+         t.Fatalf("Error al insertar los artistas: %v", err)
+     }
+
+     _, err = db.Exec(`
+         INSERT INTO albums VALUES
+         (1, '/music/Acoustic', 'Acoustic', 2007),
+         (2, '/music/Electric', 'Electric', 2006)
+     `)
+     if err != nil {
+         t.Fatalf("Error al insertar los álbumes: %v", err)
+     }
+
+     _, err = db.Exec(`
+         INSERT INTO rolas VALUES
+         (1, 1, 1, '/music/Acoustic/Rola1.mp3',
+          'Acoustic', 1, 2007, 'Rock'),
+ 
+         (2, 2, 2, '/music/Electric/Rola2.mp3',
+          'Electric', 6, 2006, 'Progressive Rock'),
+
+         (3, 1, 1, '/music/Imagine/Rola3.mp3',
+          'Other', 2, 2004, 'Pop')
+     `)
+     if err != nil {
+         t.Fatalf("Error al insertar las rolas: %v", err)
+     }
+}
+
+/*
+Prueba de integración sobre el lexer, parser,
+traductor y la BDD
+*/
+func TestBuscaCompiladaIntegracion(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     rolas, err := BuscaCompilada(`title = "Acoustic"`, db)
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 1 {
+         t.Fatalf("Se esperaba 1 canción, pero se obtuvieron %d",
+	 len(rolas))
+     }
+
+     if rolas[0].title != "Acoustic" {
+         t.Errorf("Se esperaba Acoustic, se obtuvo %s", rolas[0].title)
+     }
+
+     if rolas[0].artist != "Eiro Nareth" {
+         t.Errorf("Se esperaba Eiro Nareth, pero se obtuvo %s",
+	 rolas[0].artist)
+     }
+}
+
+/*
+Prueba de integración que verifica las búsquedas
+con múltiples condiciones y operadores lógicos
+*/
+func TestBuscaCompiladaOperacionLogica(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     rolas, err := BuscaCompilada(
+         `artist = "Eiro Nareth" & year = 2007`, db,
+     )
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 1 {
+         t.Fatalf("Se esperaba 1 canción, pero se obtuvieron %d",
+         len(rolas))
+     }
+
+     if rolas[0].title != "Acoustic" {
+         t.Errorf("Se esperaba Acoustic, se obtuvo %s",
+         rolas[0].title)
+     }
+ 
+     if rolas[0].year != 2007 {
+         t.Errorf("Se esperaba el año 2007, se obtuvo %d",
+         rolas[0].year)
+     }
+
+     if rolas[0].artist != "Eiro Nareth" {
+         t.Errorf("Se esperaba Eiro Nareth, se obtuvo %s",
+         rolas[0].artist)
+     }
+}
+
+/*
+Prueba de integración que verifica las búsquedas
+con el operador lógico | (OR)
+*/
+func TestBuscaCompiladaOR(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     rolas, err := BuscaCompilada(
+         `artist = "Eiro Nareth" | year = 2006`, db,
+     )
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 3 {
+         t.Fatalf("Se esperaban 3 canciones, pero se obtuvieron %d",
+         len(rolas))
+     }
+}
+
+/*
+Prueba de integración que verifica las búsquedas
+con el operador lógico ! (NOT)
+*/
+func TestBuscaCompiladaNOT(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     rolas, err := BuscaCompilada(
+         `! (artist = "Eiro Nareth")`, db,
+     )
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+     if len(rolas) != 1 {
+         t.Fatalf("Se esperaba 1 canción, pero se obtuvieron %d",
+         len(rolas))
+     }
+
+     if rolas[0].title != "Electric" {
+         t.Errorf("Se esperaba Electric, se obtuvo %s",
+         rolas[0].title)
+     }
+}
+
+/*
+Prueba de integración que verifica que los paréntesis
+modifiquen correctamente la precedencia de las operaciones lógicas
+*/
+func TestBuscaCompiladaPrecedencia(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     rolas, err := BuscaCompilada(
+         `(artist = "Eiro Nareth" | artist = "Bernth") & year = 2007`,
+         db,
+     )
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 1 {
+         t.Fatalf("Se esperaba 1 canción, pero se obtuvieron %d",
+         len(rolas))
+     }
+     if rolas[0].title != "Acoustic" {
+         t.Errorf("Se esperaba Acoustic, se obtuvo %s",
+         rolas[0].title)
+     }
+}

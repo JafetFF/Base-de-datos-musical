@@ -14,6 +14,13 @@ type Lexer struct {
      posicion int
 }
 
+// Constructor de Lexer
+func NewLexer(entrada string) *Lexer {
+     return &Lexer{
+     	    entrada: entrada,
+     }
+}
+
 /*
 Función auxiliar que regresa el siguiente token de la entrada
 */
