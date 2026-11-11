@@ -17,18 +17,19 @@ func TestVerificaNodo(t *testing.T) {
          campo string
          operador string
          valor string
+	 tipoValor TipoToken
          errorEsperado bool
      }{
-         {"Título igual", "title", "=", "Hero", false},
-         {"Título diferente", "title", "!=", "Liar", false},
-         {"Título contiene", "title", "~", "Arsonists", false},
-         {"Año mayor o igual", "year", ">=", "2004", false},
-         {"Pista menor que", "track", "<", "5", false},
-         {"Campo no permitido", "Unknown", "=", "Test", true},
-         {"Operador no permitido", "title", "?", "Test", true},
-         {"Operador incompatible", "title", ">", "Test", true},
-         {"Operador numérico en string", "genre", "<=", "Rock", true},
-         {"Contiene en año", "year", "~", "2017", true},
+         {"Título igual", "title", "=", "Hero", CADENA, false},
+         {"Título diferente", "title", "!=", "Liar", CADENA, false},
+         {"Título contiene", "title", "~", "Arsonists", CADENA, false},
+         {"Año mayor o igual", "year", ">=", "2004", NUMERO, false},
+         {"Pista menor que", "track", "<", "5", NUMERO, false},
+         {"Campo no permitido", "Unknown", "=", "Test", CADENA, true},
+         {"Operador no permitido", "title", "?", "Test", CADENA, true},
+         {"Operador incompatible", "title", ">", "Test", CADENA, true},
+         {"Operador numérico en string", "genre", "<=", "Rock", CADENA, true},
+         {"Contiene en año", "year", "~", "2017", NUMERO, true},
      }
 
      for _, prueba := range pruebas {
@@ -37,6 +38,7 @@ func TestVerificaNodo(t *testing.T) {
                  Campo: prueba.campo,
                  Operador: prueba.operador,
                  Valor: prueba.valor,
+		 TipoValor: prueba.tipoValor,
              }
 
              _, err := verificaNodo(condicion)
@@ -60,13 +62,14 @@ func TestTraduceCondicion(t *testing.T) {
          campo string
          operador string
          valor string
+	 tipoValor TipoToken
          sqlEsperado string
      }{
-         {"Título igual", "title", "=", "Dive", "rolas.title = ?"},
-         {"Año mayor o igual", "year", ">=", "2008", "rolas.year >= ?"},
-         {"Género diferente", "genre", "!=", "Pop", "rolas.genre != ?"},
-         {"Artista igual", "artist", "=", "Eiro", "performers.name = ?"},
-         {"Álbum igual", "album", "=", "Reasons", "albums.name = ?"},
+         {"Título igual", "title", "=", "Dive", CADENA, "rolas.title = ?"},
+         {"Año mayor o igual", "year", ">=", "2008", NUMERO, "rolas.year >= ?"},
+         {"Género diferente", "genre", "!=", "Pop", CADENA, "rolas.genre != ?"},
+         {"Artista igual", "artist", "=", "Eiro", CADENA, "performers.name = ?"},
+         {"Álbum igual", "album", "=", "Reasons", CADENA, "albums.name = ?"},
      }
 
      for _, prueba := range pruebas {
@@ -75,6 +78,7 @@ func TestTraduceCondicion(t *testing.T) {
                  Campo: prueba.campo,
                  Operador: prueba.operador,
                  Valor: prueba.valor,
+		 TipoValor: prueba.tipoValor,
              }
 
              sql, parametros, err := traductor.Traduce(condicion)
@@ -96,7 +100,8 @@ func TestTraduceCondicion(t *testing.T) {
              if parametros[0] != prueba.valor {
                  t.Errorf("Parámetro esperado %q, se obtuvo %v",
                  prueba.valor, parametros[0])
-             } 
+             }
+	     
          })
      }
 }
@@ -114,11 +119,13 @@ func TestTraduceOperacionAND(t *testing.T) {
              Campo: "title",
              Operador: "=",
              Valor: "Otra Vez",
+	     TipoValor: CADENA,
          },
          Derecho: &Condicion{
              Campo: "year",
              Operador: ">=",
              Valor: "2017",
+	     TipoValor: NUMERO,
          },
      }
 
@@ -152,11 +159,13 @@ func TestTraduceOperacionOR(t *testing.T) {
              Campo: "title",
              Operador: "=",
              Valor: "Changed",
+	     TipoValor: CADENA,
          },
          Derecho: &Condicion{
              Campo: "genre",
              Operador: "=",
              Valor: "Pop",
+	     TipoValor: CADENA,
          }, 
      }
 
@@ -192,17 +201,20 @@ func TestTraduceOperacionesAnidadas(t *testing.T) {
                  Campo: "title",
                  Operador: "=",
                  Valor: "Lord",
+		 TipoValor: CADENA,
              },
              Derecho: &Condicion{
                  Campo: "year",
                  Operador: ">=",
                  Valor: "2015",
+		 TipoValor: NUMERO,
              },
          },
          Derecho: &Condicion{
              Campo: "genre",
              Operador: "=",
              Valor: "Rock",
+	     TipoValor: CADENA,
          },
      }
 
@@ -232,9 +244,10 @@ func TestTraduceNegacion(t *testing.T) {
 
      nodo := &Negacion{
          Expresion: &Condicion{
-             Campo:    "genre",
-             Operador: "=",
-             Valor:    "Pop",
+             Campo:     "genre",
+             Operador:  "=",
+             Valor:     "Pop",
+	     TipoValor: CADENA,
          },
      }
 
@@ -266,14 +279,16 @@ func TestTraduceNegacionAND(t *testing.T) {
          Expresion: &OperacionLogica{
              Operador: "&",
              Izquierdo: &Condicion{
-                 Campo:    "title",
-                 Operador: "=",
-                 Valor:    "Guerrero",
+                 Campo:     "title",
+                 Operador:  "=",
+                 Valor:     "Guerrero",
+		 TipoValor: CADENA,
              },
              Derecho: &Condicion{
-                 Campo:    "year",
-                 Operador: ">=",
-                 Valor:    "2009",
+                 Campo:     "year",
+                 Operador:  ">=",
+                 Valor:     "2009",
+		 TipoValor: NUMERO,
              },
          },
      }
@@ -305,9 +320,10 @@ func TestTraduceNegacionesMultiple(t *testing.T) {
      nodo := &Negacion{
          Expresion: &Negacion{
              Expresion: &Condicion{
-                 Campo:    "genre",
-                 Operador: "=",
-                 Valor:    "Indie",
+                 Campo:     "genre",
+                 Operador:  "=",
+                 Valor:     "Indie",
+		 TipoValor: CADENA,
              },
          },
      }
@@ -352,9 +368,10 @@ bien el caso de LIKE en Traduce()
 func TestTraduceContiene(t *testing.T) {
      traductor := Traductor{}
      nodo := &Condicion{
-     	  Campo:    "title",
-          Operador: "~",
-          Valor:    "Heaven",
+     	  Campo:     "title",
+          Operador:  "~",
+          Valor:     "Heaven",
+	  TipoValor: CADENA,
      }
 
      sql, parametros, err := traductor.Traduce(nodo)
@@ -372,5 +389,45 @@ func TestTraduceContiene(t *testing.T) {
      if !slices.Equal(parametros, parametrosEsperados) {
          t.Errorf("Parámetros esperados %v, y se obtuvieron %v",
          parametrosEsperados, parametros)
+     }
+}
+
+/*
+Prueba unitaria para comprobar que se regresa
+un error cuando el tipo del valor no corresponde
+con el que puede recibir el campo
+*/
+func TestVerificaTipo(t *testing.T) {
+     pruebas := []struct {
+         nombre string
+         campo string
+         tipo TipoToken
+         esperado bool
+     }{
+         {"Cadena válida", "title", CADENA, false},
+         {"Número válido", "year", NUMERO, false},
+         {"Cadena en campo numérico", "year", CADENA, true},
+         {"Número en campo de texto", "title", NUMERO, true},
+         {"Campo desconocido", "unknown", CADENA, true},
+     }
+
+     for _, prueba := range pruebas {
+         t.Run(prueba.nombre, func(t *testing.T) {
+             condicion := &Condicion{
+                 Campo:     prueba.campo,
+                 TipoValor: prueba.tipo,
+             }
+
+             err := verificaTipo(condicion)
+
+             if prueba.esperado && err == nil {
+                 t.Error("Se esperaba un error")
+             }
+
+             if !prueba.esperado && err != nil {
+                 t.Errorf("No se esperaba un error, pero se obtuvo: %v",
+		 err)
+             }
+         })
      }
 }

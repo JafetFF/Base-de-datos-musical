@@ -6,9 +6,10 @@ type Nodo interface {
 }
 
 type Condicion struct {
-     Campo    string
-     Operador string
-     Valor    string
+     Campo     string
+     Operador  string
+     Valor     string
+     TipoValor TipoToken
 }
 
 type OperacionLogica struct {

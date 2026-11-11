@@ -25,6 +25,9 @@ func TestParseaCondicion(t *testing.T) {
      if con.Valor != "name" {
 	t.Errorf("Se esperaba 'name', y se obtuvo %s", con.Valor)
      }
+     if con.TipoValor != CADENA {
+     	t.Errorf("Se esperaba CADENA, y se obtuvo %v", con.TipoValor)
+     }
 }
 
 /*
@@ -53,6 +56,10 @@ func TestParseaCondicionNumerica(t *testing.T) {
 
     if con.Valor != "2007" {
         t.Errorf("Se esperaba 2007, y se obtuvo %s", con.Valor)
+    }
+
+    if con.TipoValor != NUMERO {
+        t.Errorf("Se esperaba NUMERO, y se obtuvo %v", con.TipoValor)
     }
 }
 

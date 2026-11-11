@@ -68,8 +68,17 @@ func (p *Parser) parseaCondicion() (*Condicion, error) {
      }
 
      switch p.tokenActual.Tipo {
-     case CADENA, NUMERO:
+     case CADENA:
      	  c.Valor = p.tokenActual.Valor
+	  c.TipoValor = CADENA
+	  err := p.AvanzaToken()
+	  if err != nil {
+	     return nil, err
+	  }
+
+     case NUMERO:
+     	  c.Valor = p.tokenActual.Valor
+	  c.TipoValor = NUMERO
 	  err := p.AvanzaToken()
 	  if err != nil {
 	     return nil, err

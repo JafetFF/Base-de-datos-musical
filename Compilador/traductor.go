@@ -49,6 +49,26 @@ var operadoresPorCampo = map[string][]string{
     "track":  {"=", "!=", ">", "<", ">=", "<="},
 }
 
+// Tipos para cada campo
+var tiposPorCampo = map[string]TipoToken{
+    "title":       CADENA,
+    "artist":	   CADENA,
+    "year":	   NUMERO,
+    "track":       NUMERO,
+    "genre":       CADENA,
+    "path":        CADENA,
+    "album":       CADENA,
+    "album_path":  CADENA,
+    "album_year":  NUMERO,
+    "stage_name":  CADENA,
+    "real_name":   CADENA,
+    "birth_date":  CADENA,
+    "death_date":  CADENA,
+    "group_name":  CADENA,
+    "group_start": CADENA,
+    "group_end":   CADENA,
+}
+
 /*
 Función que traduce un nodo, tratando cada caso según
 sea una Condicion, OperacionLogica, Negacion u otro
@@ -125,6 +145,25 @@ func verificaNodo(n *Condicion) (bool, error) {
 	return false, fmt.Errorf("El operador %s no corresponde " +
 	"con el campo %s", n.Operador, n.Campo)
      }
+     if err := verificaTipo(n); err != nil {
+     	return false, err
+     }
+     
      return true, nil
+}
+
+/*
+Función que verifica que un valor esté correctamente
+vinculado con el campo en una Condicion
+*/
+func verificaTipo(c *Condicion) error {
+     tipo, ok := tiposPorCampo[c.Campo]
+     if !ok {
+     	return fmt.Errorf("Campo desconocido %s", c.Campo)
+     }
+     if c.TipoValor != tipo {
+     	return fmt.Errorf("El tipo del valor no corresponde con el campo")
+     }
+     return nil
 }
 
