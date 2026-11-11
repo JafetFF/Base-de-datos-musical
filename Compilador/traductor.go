@@ -237,16 +237,16 @@ func (t *Traductor) ConstruyeConsulta(n Nodo) (string, []any, error) {
 
      consulta := `SELECT
     	      	  rolas.id_rola,
-    	      	  rolas.id_performer,
-    	      	  rolas.id_album,
-    	      	  performers.name,
-    	      	  albums.name,
-    	      	  albums.path,
-    	      	  rolas.title,
-		  rolas.path,
-    	      	  rolas.track,
-    	      	  rolas.year,
-    	     	  rolas.genre
+    	      	  COALESCE(rolas.id_performer, 0),
+    	      	  COALESCE(rolas.id_album, 0),
+    	      	  COALESCE(performers.name, ''),
+    	      	  COALESCE(albums.name, ''),
+    	      	  COALESCE(albums.path, ''),
+    	      	  COALESCE(rolas.title, ''),
+		  COALESCE(rolas.path, ''),
+    	      	  COALESCE(rolas.track, 0),
+    	      	  COALESCE(rolas.year, 0),
+    	     	  COALESCE(rolas.genre, '')
 	      	  FROM rolas
 	      	  JOIN performers ON rolas.id_performer = performers.id_performer
 	      JOIN albums ON rolas.id_album = albums.id_album`

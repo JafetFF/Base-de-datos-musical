@@ -870,3 +870,54 @@ func TestBuscaCompiladaPrecedencia(t *testing.T) {
          rolas[0].title)
      }
 }
+
+/*
+Prueba de integración que verifica que las canciones
+con campos NULL puedan obtenersee correctamente
+*/
+func TestBuscaCompiladaNULL(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     _, err := db.Exec(`
+         INSERT INTO rolas VALUES
+         (4, 1, 1, NULL, 'Sin datos', NULL, NULL, NULL)
+     `)
+     if err != nil {
+         t.Fatalf("Error al insertar la canción: %v", err)
+     }
+
+     rolas, err := BuscaCompilada(`title = "Sin datos"`, db)
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 1 {
+         t.Fatalf("Se esperaba 1 canción, pero se obtuvieron %d",
+         len(rolas))
+     }
+
+     if rolas[0].title != "Sin datos" {
+         t.Errorf("Se esperaba Sin datos, se obtuvo %s",
+         rolas[0].title)
+     }
+}
+
+/*
+Prueba de integración que verifica que una búsqueda
+sin ocurrencias devuelva una colección vacía
+*/
+func TestBuscaCompiladaSinResultados(t *testing.T) {
+     db := bddPrueba(t)
+     insertaDatosDeIntegracion(t, db)
+
+     rolas, err := BuscaCompilada(`title = "Inexistente"`, db)
+     if err != nil {
+         t.Fatalf("La búsqueda devolvió un error: %v", err)
+     }
+
+     if len(rolas) != 0 {
+         t.Fatalf("Se esperaban 0 canciones, pero se obtuvieron %d",
+         len(rolas))
+     }
+}
