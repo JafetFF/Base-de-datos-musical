@@ -62,7 +62,12 @@ func (t *Traductor) Traduce(nodo Nodo) (string, []any, error) {
 	  campo, _ := camposPermitidos[n.Campo]
 	  operador, _ := operadoresPermitidos[n.Operador]
      	  cadena := campo + " " + operador + " ?"
-	  parametro := []any{n.Valor}
+	  parametro := []any{}
+	  if operador == "LIKE" {
+	     parametro = append(parametro, "%" + n.Valor + "%")
+	  } else {
+	     parametro = append(parametro, n.Valor)
+	  }
 	  return cadena, parametro, nil
 
      case *OperacionLogica:
@@ -97,6 +102,7 @@ func (t *Traductor) Traduce(nodo Nodo) (string, []any, error) {
 	  return cadnot, params, nil
 
      default:
+	return "", nil, fmt.Errorf("Tipo de Nodo desconocido: %T", n)
      
      }
      

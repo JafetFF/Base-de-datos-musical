@@ -5,6 +5,11 @@ import (
        "slices"
 )
 
+type NodoTest struct {
+}
+
+func (n *NodoTest) esNodo() {}
+
 // Prueba unitaria para el método VerificaNodo
 func TestVerificaNodo(t *testing.T) {
      pruebas := []struct {
@@ -318,6 +323,52 @@ func TestTraduceNegacionesMultiple(t *testing.T) {
      }
 
      parametrosEsperados := []any{"Indie"}
+     if !slices.Equal(parametros, parametrosEsperados) {
+         t.Errorf("Parámetros esperados %v, y se obtuvieron %v",
+         parametrosEsperados, parametros)
+     }
+}
+
+/*
+Prueba unitaria para verificar que efectivamente
+use regresa un error el método Traduce() al
+pasarle un Nodo desconocido
+*/
+func TestTraduceNodoDesconocido(t *testing.T) {
+     traductor := Traductor{}
+     nodo := &NodoTest{}
+
+     _, _, err := traductor.Traduce(nodo)
+
+     if err == nil {
+         t.Error("Se esperaba un error por tipo de Nodo desconocido")
+     }
+}
+
+/*
+Prueba unitaria para comprobar que se traduce
+bien el caso de LIKE en Traduce()
+*/
+func TestTraduceContiene(t *testing.T) {
+     traductor := Traductor{}
+     nodo := &Condicion{
+     	  Campo:    "title",
+          Operador: "~",
+          Valor:    "Heaven",
+     }
+
+     sql, parametros, err := traductor.Traduce(nodo)
+
+     if err != nil {
+         t.Fatalf("Error al traducir: %v", err)
+     }
+
+     esperado := "rolas.title LIKE ?"
+     if sql != esperado {
+         t.Errorf("SQL esperado %q, pero se obtuvo %q", esperado, sql)
+     }
+
+     parametrosEsperados := []any{"%Heaven%"}
      if !slices.Equal(parametros, parametrosEsperados) {
          t.Errorf("Parámetros esperados %v, y se obtuvieron %v",
          parametrosEsperados, parametros)
