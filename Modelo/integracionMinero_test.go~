@@ -1,0 +1,62 @@
+package main
+
+import (
+       "testing"
+       "path/filepath"
+       "Song/Minero"
+)
+
+/*
+Prueba para comprobar que la conversión de tipos
+se hace correctamente
+*/ 
+func TestConvierteMetadatos(t *testing.T) {
+    imagenes := [][]byte{
+        {1, 2, 3},
+        {4, 5, 6},
+    }
+
+    datos := minero.NewMetadatos(minero.DatosMetadatos{
+        Titulo:          "Cancion",
+        Artista:         "Artista",
+        Album:           "Album",
+        BandaAlbum:      "Banda",
+        Anio:            2024,
+        Pista:           3,
+        TotalPistas:     12,
+        NumeroDisco:     1,
+        TotalDiscos:     2,
+        Genero:          "Rock",
+        Comentarios:     "Comentario",
+        Compositor:      "Compositor",
+        ArtistaOriginal: "Artista original",
+        Imagenes:        imagenes,
+        Ruta:            "/musica/album/cancion.mp3",
+    })
+
+    esperada := Rola{
+        artist:         "Artista",
+        album:          "Album",
+        albumPath:      "/musica/album",
+        title:          "Cancion",
+        path:           "/musica/album/cancion.mp3",
+        track:          3,
+        totalTracks:    12,
+        year:           2024,
+        genre:          "Rock",
+        comments:       "Comentario",
+        composer:       "Compositor",
+        originalArtist: "Artista original",
+        albumArtist:    "Banda",
+        disc:           1,
+        totalDiscs:     2,
+        images:         imagenes,
+    }
+
+    obtenida := ConvierteMetadatos(datos)
+
+    if !reflect.DeepEqual(obtenida, esperada) {
+        t.Errorf("ConvierteMetadatos() = %+v, se esperaba %+v",
+            obtenida, esperada)
+    }
+}

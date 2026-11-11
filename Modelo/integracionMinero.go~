@@ -1,0 +1,31 @@
+package main
+
+import (
+       "path/filepath"
+       "Song/Minero"
+)
+
+/*
+Función que convierte los metadatos obtenidos
+por el minero a una Rola
+*/
+func ConvierteMetadatos(datos minero.Metadatos) Rola {
+    return Rola{
+        artist:         datos.GetArtista(),
+        album:          datos.GetAlbum(),
+        albumPath:      filepath.Dir(datos.GetRuta()),
+        title:          datos.GetTitulo(),
+        path:           datos.GetRuta(),
+        track:          datos.GetPista(),
+        totalTracks:    datos.GetTotalPistas(),
+        year:           datos.GetAño(),
+        genre:          datos.GetGenero(),
+        comments:       datos.GetComentarios(),
+        composer:       datos.GetCompositor(),
+        originalArtist: datos.GetArtistaOriginal(),
+        albumArtist:    datos.GetBandaAlbum(),
+        disc:           datos.GetNumeroDisco(),
+        totalDiscs:     datos.GetTotalDiscos(),
+        images:         datos.GetImagenes(),
+    }
+}

@@ -76,9 +76,12 @@ en la bdd y luego las regresa
 */
 func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     renglones, err := db.Query(
-        `SELECT id_rola, title, year, genre
+        `SELECT rolas.id_rola, rolas.title, rolas.year, rolas.genre,
+	 performers.name, albums.name
          FROM rolas
-         WHERE title LIKE ?`,
+	 LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+	 LEFT JOIN albums ON rolas.id_album = albums.id_album
+         WHERE rolas.title LIKE ?`,
         "%"+cadena+"%",
     )
     
@@ -92,15 +95,23 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     for renglones.Next() {
         var rola Rola
 
-        err := renglones.Scan(
-            &rola.id,
-            &rola.title,
-            &rola.year,
-            &rola.genre,
-        )
-        if err != nil {
-            return nil, err
-        }
+        var artista, album sql.NullString
+
+	err := renglones.Scan(
+    	    &rola.id,
+    	    &rola.title,
+    	    &rola.year,
+    	    &rola.genre,
+    	    &artista,
+    	    &album,
+	)
+
+	if err != nil {
+    	   return nil, err
+	}
+
+	rola.artist = artista.String
+	rola.album = album.String
 
         rolas = append(rolas, rola)
     }

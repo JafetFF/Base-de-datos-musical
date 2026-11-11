@@ -12,21 +12,42 @@ import (
 Estructura de los metadatos que se extraerán de cada rola
 */
 type Metadatos struct {
-     titulo          string
-     artista         string
-     album           string
-     bandaAlbum      string
-     año             int
-     pista           int
-     totalPistas     int
-     numeroDisco     int
-     totalDiscos     int
-     genero          string
-     comentarios     string
-     compositor      string
-     artistaOriginal string
-     imagenes        [][]byte
-     ruta            string
+     Titulo          string
+     Artista         string
+     Album           string
+     BandaAlbum      string
+     Año             int
+     Pista           int
+     TotalPistas     int
+     NumeroDisco     int
+     TotalDiscos     int
+     Genero          string
+     Comentarios     string
+     Compositor      string
+     ArtistaOriginal string
+     Imagenes        [][]byte
+     Ruta            string
+}
+
+// Constructor de los Metadatos
+func NewMetadatos(d Metadatos) Metadatos {
+    return Metadatos{
+        Titulo:          d.Titulo,
+        Artista:         d.Artista,
+        Album:           d.Album,
+        BandaAlbum:      d.BandaAlbum,
+        Año:             d.Año,
+        Pista:           d.Pista,
+        TotalPistas:     d.TotalPistas,
+        NumeroDisco:     d.NumeroDisco,
+        TotalDiscos:     d.TotalDiscos,
+        Genero:          d.Genero,
+        Comentarios:     d.Comentarios,
+        Compositor:      d.Compositor,
+        ArtistaOriginal: d.ArtistaOriginal,
+        Imagenes:        d.Imagenes,
+        Ruta:            d.Ruta,
+    }
 }
 
 /*
@@ -93,25 +114,25 @@ func LeeEtiquetas(ruta string) (Metadatos, error) {
        return Metadatos{}, err
     }
 
-    datos.titulo = metadata.Title()
-    datos.artista = metadata.Artist()
-    datos.album = metadata.Album()
-    datos.genero = metadata.Genre()
-    datos.ruta = ruta
-    datos.año = metadata.Year()
-    datos.comentarios = metadata.Comment()
-    datos.compositor = metadata.Composer()
+    datos.Titulo = metadata.Title()
+    datos.Artista = metadata.Artist()
+    datos.Album = metadata.Album()
+    datos.Genero = metadata.Genre()
+    datos.Ruta = ruta
+    datos.Año = metadata.Year()
+    datos.Comentarios = metadata.Comment()
+    datos.Compositor = metadata.Composer()
     
-    datos.pista, datos.totalPistas = metadata.Track()
-    datos.numeroDisco, datos.totalDiscos = metadata.Disc()
+    datos.Pista, datos.TotalPistas = metadata.Track()
+    datos.NumeroDisco, datos.TotalDiscos = metadata.Disc()
 
     raw := metadata.Raw()
 
     if banda, ok := raw["TPE2"].(string); ok {
-       datos.bandaAlbum = banda
+       datos.BandaAlbum = banda
     }
     if original, ok := raw["TOPE"].(string); ok {
-       datos.artistaOriginal = original
+       datos.ArtistaOriginal = original
     }
 
     for _, valor := range raw {
@@ -119,7 +140,7 @@ func LeeEtiquetas(ruta string) (Metadatos, error) {
     	if !ok {
            continue
     	}
-    	datos.imagenes = append(datos.imagenes, imagen.Data)
+    	datos.Imagenes = append(datos.Imagenes, imagen.Data)
     }
 
     return datos, nil
