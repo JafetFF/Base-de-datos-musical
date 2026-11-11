@@ -42,67 +42,67 @@ func TestLeeEtiquetas(t *testing.T) {
      if err != nil {
          t.Fatal(err)
      }
-     if datos.titulo != "T" {
+     if datos.Titulo != "T" {
      	t.Errorf("Título incorrecto: se esperaba T, se obtuvo %s",
-	datos.titulo)
+	datos.Titulo)
      }
-     if datos.artista != "A" {
+     if datos.Artista != "A" {
      	t.Errorf("Artista incorrecto: se esperaba A, se obtuvo %s",
-	datos.artista)
+	datos.Artista)
      }
-     if datos.album != "L" {
+     if datos.Album != "L" {
      	t.Errorf("Álbum incorrecto: se esperaba L, se obtuvo %s",
-	datos.album)
+	datos.Album)
      }
-     if datos.año != 1950 {
+     if datos.Año != 1950 {
      	t.Errorf("Año incorrecto: se esperaba 1950, se obtuvo %d",
-	datos.año)
+	datos.Año)
      }
-     if datos.comentarios != "C" {
+     if datos.Comentarios != "C" {
      	t.Errorf("Comentarios incorrectos: se esperaba C, se obtuvo %s",
-	datos.comentarios)
+	datos.Comentarios)
      }
-     if datos.genero != "8" {
+     if datos.Genero != "8" {
      	t.Errorf("Género incorrecto: se esperaba 8, se obtuvo %s",
-	datos.genero)
+	datos.Genero)
      }
-     if datos.compositor != "S" {
+     if datos.Compositor != "S" {
      	t.Errorf("Compositor incorrecto: se esperaba S, se obtuvo %s",
-	datos.compositor)
+	datos.Compositor)
      }
-     if datos.ruta != ruta {
+     if datos.Ruta != ruta {
      	t.Errorf("Ruta incorrecto: se esperaba %s, se obtuvo %s", ruta,
-	datos.ruta)
+	datos.Ruta)
      }
-     if datos.pista != 3 {
+     if datos.Pista != 3 {
         t.Errorf("Pista incorrecta: se esperaba 3, se obtuvo %d",
-	datos.pista)
+	datos.Pista)
      }
-     if datos.totalPistas != 7 {
+     if datos.TotalPistas != 7 {
      	t.Errorf("Total de pistas incorrecto: se esperaba 7, se obtuvo %d",
-	datos.totalPistas)
+	datos.TotalPistas)
      }
-     if datos.numeroDisco != 1 {
+     if datos.NumeroDisco != 1 {
      	t.Errorf("Número de disco incorrecto: se esperaba 1, se obtuvo %d",
-	datos.numeroDisco)
+	datos.NumeroDisco)
      }
-     if datos.totalDiscos != 0 {
+     if datos.TotalDiscos != 0 {
      	t.Errorf("Total de discos incorrecto: se esperaba 0, se obtuvo %d",
-	datos.totalDiscos)
+	datos.TotalDiscos)
      }
-     if datos.bandaAlbum != "B" {
+     if datos.BandaAlbum != "B" {
      	t.Errorf("Banda del álbum incorrecta: se esperaba B, se obtuvo %s",
-	datos.bandaAlbum)
+	datos.BandaAlbum)
      }
-     if datos.artistaOriginal != "O" {
+     if datos.ArtistaOriginal != "O" {
      	t.Errorf("Artista original incorrecto: se esperaba O, se obtuvo %s",
-	datos.artistaOriginal)
+	datos.ArtistaOriginal)
      }
-     if len(datos.imagenes) != 2 {
+     if len(datos.Imagenes) != 2 {
      	t.Errorf("Cantidad de imágenes incorrecta: se esperaban 2, " +
-	"se obtuvieron %d", len(datos.imagenes))
+	"se obtuvieron %d", len(datos.Imagenes))
      }
-     for i, imagen := range datos.imagenes {
+     for i, imagen := range datos.Imagenes {
      	 if len(imagen) == 0 {
             t.Errorf("La imagen %d está vacía", i)
 	 }
