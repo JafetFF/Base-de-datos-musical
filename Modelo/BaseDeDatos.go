@@ -20,28 +20,6 @@ type EjecutaSQL interface {
      QueryRow(query string, args ...any) *sql.Row
 }
 
-/*
-Función principal que permite abrir la base de datos
-*/
-func main() {
-     db, err := sql.Open("sqlite", "../BDD/BaseMusical.db")
-
-     if err != nil {
-     	fmt.Printf("Error %v al abrir la base de datos \n", err)
-	return
-     }
-     defer db.Close()
-
-     err = db.Ping()
-
-     if err != nil {
-     	fmt.Printf("Error %v al conectar a la base de datos", err)
-	return
-     }
-
-     RecibeInstruccion(db)     
-}
-
 // Función que recibe una instrucción para ejecutar en la bdd
 func RecibeInstruccion(db *sql.DB) {
      scanner := bufio.NewScanner(os.Stdin)
