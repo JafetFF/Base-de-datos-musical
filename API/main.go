@@ -8,6 +8,7 @@ import (
        "net/http"
        _ "modernc.org/sqlite"
        "Song/Modelo"
+       "strings"
 )
 
 // Main abre la BDD e inicia el servidor http
@@ -26,6 +27,7 @@ func main() {
 
      mux.HandleFunc("GET /api/health", healthHandler(db))
      mux.HandleFunc("GET /api/rolas", rolasHandler(db))
+     mux.HandleFunc("POST /api/minar", minarHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -77,5 +79,40 @@ func rolasHandler(db *sql.DB) http.HandlerFunc {
 
 	    w.Header().Set("Content-Type", "application/json")
 	    json.NewEncoder(w).Encode(datos)
+     }
+}
+
+// minarHandler recibe un directorio y ejecuta al minero
+func minarHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            var solicitud struct {
+            	Directorio string `json:"directorio"`
+            }
+
+            err := json.NewDecoder(r.Body).Decode(&solicitud)
+            if err != nil {
+               http.Error(w, "Solicitud de json inválida",
+               http.StatusBadRequest)
+               return
+            }
+
+            if strings.TrimSpace(solicitud.Directorio) == "" {
+               http.Error(w, "Debes indicar un directorio a minar",
+               http.StatusBadRequest)
+               return
+            }
+
+            err = modelo.MinaYAgrega(solicitud.Directorio, db)
+            if err != nil {
+               http.Error(w, "Ocurrió un error al minar el directorio: "+err.Error(),
+               http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+            	"message": "Se minó correctamente",
+            })
      }
 }

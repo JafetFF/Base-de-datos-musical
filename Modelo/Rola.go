@@ -25,24 +25,26 @@ type Rola struct {
 // DatosRola representa los datos de una rola
 // se intercambian mediante json
 type DatosRola struct {
-     ID     int    `json:"id"`
-     Title  string `json:"title"`
-     Artist string `json:"artist"`
-     Album  string `json:"album"`
-     Year   int    `json:"year"`
-     Genre  string `json:"genre"`
-     Path   string `json:"path"`
+     ID      int    `json:"id"`
+     AlbumID int    `json:"album_id"`
+     Title   string `json:"title"`
+     Artist  string `json:"artist"`
+     Album   string `json:"album"`
+     Year    int    `json:"year"`
+     Genre   string `json:"genre"`
+     Path    string `json:"path"`
 }
 
 // Datos regresa una representación de los datos de la rola
 func (r Rola) Datos() DatosRola {
      return DatosRola{
-     	    ID:     r.id,
-	    Title:  r.title,
-	    Artist: r.artist,
-	    Album:  r.album,
-	    Year:   r.year,
-	    Genre:  r.genre,
-	    Path:   r.path,
+     	    ID:      r.id,
+	    AlbumID: r.idAlbum,
+	    Title:   r.title,
+	    Artist:  r.artist,
+	    Album:   r.album,
+	    Year:    r.year,
+	    Genre:   r.genre,
+	    Path:    r.path,
      }
 }

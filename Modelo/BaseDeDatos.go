@@ -8,6 +8,8 @@ import (
        "os"
        _ "modernc.org/sqlite"
        "Song/Compilador"
+       "path/filepath"
+       "net/http"
 )
 
 /*
@@ -54,7 +56,7 @@ en la bdd y luego las regresa
 */
 func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     renglones, err := db.Query(
-        `SELECT rolas.id_rola, rolas.title, rolas.year, rolas.genre,
+        `SELECT rolas.id_rola, rolas.id_album, rolas.title, rolas.year, rolas.genre,
 	 performers.name, albums.name
          FROM rolas
 	 LEFT JOIN performers ON rolas.id_performer = performers.id_performer
@@ -74,9 +76,11 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
         var rola Rola
 
         var artista, album sql.NullString
+	var idAlbum sql.NullInt64
 
 	err := renglones.Scan(
     	    &rola.id,
+	    &idAlbum,
     	    &rola.title,
     	    &rola.year,
     	    &rola.genre,
@@ -86,6 +90,10 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
 
 	if err != nil {
     	   return nil, err
+	}
+
+	if idAlbum.Valid {
+	   rola.idAlbum = int(idAlbum.Int64)
 	}
 
 	rola.artist = artista.String
@@ -149,7 +157,12 @@ func Agrega(rola Rola, db *sql.DB) error {
      if err != nil {
      	return err
      }
-     return tx.Commit()
+     
+     err = tx.Commit()
+     if err != nil {
+     	return err
+     }
+     return GuardaPortada(idAlbum, rola.images)
 }
 
 /*
@@ -235,6 +248,51 @@ func ObtieneAlbum(rola Rola, db EjecutaSQL) (int, error) {
          return int(nuevoID), nil
      }
      return id, err
+}
+
+// Guarda la portada de un álbum
+func GuardaPortada(idAlbum int, imagenes [][]byte) error {
+     if idAlbum == 0 || len(imagenes) == 0 {
+        return nil
+     }
+
+     directorio := filepath.Join("BDD", "Portadas")
+
+     err := os.MkdirAll(directorio, 0755)
+     if err != nil {
+        return err
+     }
+
+     imagen := imagenes[0]
+     tipo := http.DetectContentType(imagen)
+
+     extension := ""
+     switch tipo {
+     case "image/jpeg":
+          extension = ".jpg"
+	  
+     case "image/png":
+          extension = ".png"
+	  
+     case "image/gif":
+          extension = ".gif"
+	  
+     case "image/webp":
+          extension = ".webp"
+	  
+     default:
+        return fmt.Errorf("formato de portada incompatible: %s", tipo)
+     }
+
+     nombre := fmt.Sprintf("%d%s", idAlbum, extension)
+     
+     ruta := filepath.Join(directorio, nombre)
+
+     if _, err := os.Stat(ruta); err == nil {
+        return nil
+     }
+
+     return os.WriteFile(ruta, imagen, 0644)
 }
 
 /*

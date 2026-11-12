@@ -93,7 +93,7 @@
         <item>
          <widget class="QPushButton" name="songsButton">
           <property name="text">
-           <string>Canciones</string>
+           <string>Rolas</string>
           </property>
          </widget>
         </item>
@@ -172,7 +172,7 @@
          <item>
           <widget class="QLabel" name="songsTitleLabel">
            <property name="text">
-            <string>Canciones</string>
+            <string>Rolas</string>
            </property>
           </widget>
          </item>

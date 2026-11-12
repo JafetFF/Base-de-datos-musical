@@ -48,7 +48,7 @@ func TestRolasHandler(t *testing.T) {
      consultas := []string{
      	       `INSERT INTO performers VALUES (1, 0, 'Metallica')`,
 	       `INSERT INTO albums VALUES (1, '/musica/Ride The Lightning (Deluxe Remaster)', 'Ride The Lightning (Deluxe Remaster)', 1984)`,
-	       `INSERT INTO rolas VALUES (1, 1, 1, '/musica/imagine/imagine.mp3',
+	       `INSERT INTO rolas VALUES (1, 1, 1, '/musica/Ride The Lightning (Deluxe Remaster)/IMAGINE.mp3',
  	       'Creeping Death', 1, 1984, 'Metal')`,
      }
 
