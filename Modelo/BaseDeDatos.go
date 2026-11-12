@@ -75,7 +75,7 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     for renglones.Next() {
         var rola Rola
 
-        var artista, album sql.NullString
+        var artista, album, ruta sql.NullString
 	var idAlbum sql.NullInt64
 
 	err := renglones.Scan(
@@ -86,7 +86,7 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     	    &rola.genre,
     	    &artista,
     	    &album,
-	    &rola.path,
+	    &ruta,
 	)
 
 	if err != nil {
@@ -99,6 +99,7 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
 
 	rola.artist = artista.String
 	rola.album = album.String
+	rola.path = ruta.String
 
         rolas = append(rolas, rola)
     }
