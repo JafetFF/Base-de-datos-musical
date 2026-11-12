@@ -1,4 +1,4 @@
-package main
+package modelo
 
 type Artista struct {
      id	      int

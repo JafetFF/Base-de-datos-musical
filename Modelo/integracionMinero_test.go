@@ -1,4 +1,4 @@
-package main
+package modelo
 
 import (
        "testing"
@@ -138,4 +138,59 @@ func TestMinaYAgregaNoDuplica(t *testing.T) {
      if len(rolas) != 1 {
          t.Fatalf("se esperaba 1 canción, se encontraron %d", len(rolas))
      }
+}
+
+/*
+Función que prueba que se puedan leer correctamente
+varios Mp3 sin importar que tengan los mismos metadatos
+*/
+func TestMinaYAgregaMultiplesMp3(t *testing.T) {
+    db := bddPrueba(t)
+
+    directorio := t.TempDir()
+
+    contenido, err := os.ReadFile("../Minero/demo.mp3")
+    if err != nil {
+        t.Fatal(err)
+    }
+    
+    err = os.WriteFile(
+        filepath.Join(directorio, "demo1.mp3"),
+        contenido,
+        0600,
+    )
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    subdirectorio := filepath.Join(directorio, "Rock")
+
+    err = os.Mkdir(subdirectorio, 0755)
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    err = os.WriteFile(
+        filepath.Join(subdirectorio, "demo2.mp3"),
+        contenido,
+        0600,
+    )
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    err = MinaYAgrega(directorio, db)
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    rolas, err := Busca("T", db)
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    if len(rolas) != 2 {
+        t.Fatalf("se esperaban 2 canciones, se encontraron %d",
+        len(rolas))
+    }
 }

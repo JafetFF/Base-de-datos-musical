@@ -1,4 +1,4 @@
-package main
+package modelo
 
 type Rola struct {
      id              int

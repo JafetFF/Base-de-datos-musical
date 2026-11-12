@@ -1,4 +1,4 @@
-package main
+package modelo
 
 import (
        "path/filepath"

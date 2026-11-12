@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ROLAS</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="mainLayout">
+    <property name="spacing">
+     <number>6</number>
+    </property>
+    <property name="leftMargin">
+     <number>8</number>
+    </property>
+    <property name="topMargin">
+     <number>8</number>
+    </property>
+    <property name="rightMargin">
+     <number>8</number>
+    </property>
+    <property name="bottomMargin">
+     <number>8</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="topBarLayout">
+      <item>
+       <widget class="QLabel" name="titleLabel">
+        <property name="text">
+         <string>ROLAS</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="topBarSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="searchLineEdit">
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="placeholderText">
+         <string>Buscar en la biblioteca...</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QSplitter" name="mainSplitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <widget class="QWidget" name="sidebarWidget">
+       <property name="minimumSize">
+        <size>
+         <width>150</width>
+         <height>0</height>
+        </size>
+       </property>
+       <layout class="QVBoxLayout" name="sidebarLayout">
+        <item>
+         <widget class="QPushButton" name="albumsButton">
+          <property name="text">
+           <string>Álbumes</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="songsButton">
+          <property name="text">
+           <string>Canciones</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="artistsButton">
+          <property name="text">
+           <string>Intérpretes</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="genresButton">
+          <property name="text">
+           <string>Géneros</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="foldersButton">
+          <property name="text">
+           <string>Carpetas</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="sidebarSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QStackedWidget" name="pagesStackedWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="albumsPage">
+        <attribute name="title">
+         <string>Álbumes</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="albumsPageLayout">
+         <item>
+          <widget class="QLabel" name="albumsTitleLabel">
+           <property name="text">
+            <string>Álbumes</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="albumsTable">
+           <column>
+            <property name="text">
+             <string>Álbum</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Intérprete</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Año</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="songsPage">
+        <attribute name="title">
+         <string>Canciones</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="songsPageLayout">
+         <item>
+          <widget class="QLabel" name="songsTitleLabel">
+           <property name="text">
+            <string>Canciones</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="songsTable">
+           <column>
+            <property name="text">
+             <string>Título</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Intérprete</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Álbum</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Año</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="artistsPage">
+        <attribute name="title">
+         <string>Intérpretes</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="artistsPageLayout">
+         <item>
+          <widget class="QLabel" name="artistsTitleLabel">
+           <property name="text">
+            <string>Intérpretes</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="artistsActionsLayout">
+           <item>
+            <widget class="QPushButton" name="addArtistButton">
+             <property name="text">
+              <string>Agregar intérprete</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="addGroupButton">
+             <property name="text">
+              <string>Crear grupo</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="addMemberButton">
+             <property name="text">
+              <string>Añadir integrante</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="artistsActionsSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="artistsTable">
+           <column>
+            <property name="text">
+             <string>Tipo</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Nombre</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="genresPage">
+        <attribute name="title">
+         <string>Géneros</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="genresPageLayout">
+         <item>
+          <widget class="QLabel" name="genresTitleLabel">
+           <property name="text">
+            <string>Géneros</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="genresList"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="foldersPage">
+        <attribute name="title">
+         <string>Carpetas</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="foldersPageLayout">
+         <item>
+          <widget class="QLabel" name="foldersTitleLabel">
+           <property name="text">
+            <string>Carpetas</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTreeWidget" name="foldersTree">
+           <column>
+            <property name="text">
+             <string>Carpetas y archivos</string>
+            </property>
+           </column>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="playerLayout">
+      <item>
+       <widget class="QLabel" name="currentTrackLabel">
+        <property name="text">
+         <string>Ninguna canción seleccionada</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="playerControlsLayout">
+        <item>
+         <widget class="QPushButton" name="previousButton">
+          <property name="text">
+           <string>Anterior</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="playPauseButton">
+          <property name="text">
+           <string>Reproducir</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="nextButton">
+          <property name="text">
+           <string>Siguiente</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSlider" name="progressSlider">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSlider" name="volumeSlider">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="value">
+           <number>50</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
