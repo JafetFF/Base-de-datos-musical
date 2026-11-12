@@ -19,6 +19,7 @@
 #include <QMediaPlayer>
 #include <QAudioOutput>
 #include <QPushButton>
+#include <QSlider>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -102,6 +103,23 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->nextButton, &QPushButton::clicked,
             this, [cambiarRola]() {
                 cambiarRola(1);
+    });
+    connect(ui->volumeSlider, &QSlider::valueChanged, this, [this](int volumen) {
+            salidaAudio->setVolume(volumen / 100.0);
+    });
+    connect(reproductor, &QMediaPlayer::durationChanged, this, [this](qint64 duracion) {
+        ui->progressSlider->setRange(0, duracion);
+    });
+    connect(reproductor, &QMediaPlayer::positionChanged, this, [this](qint64 posicion) {
+        ui->progressSlider->setValue(posicion);
+    });
+    connect(ui->progressSlider, &QSlider::sliderMoved, this, [this](int posicion) {
+        reproductor->setPosition(posicion);
+    });
+    connect(reproductor, &QMediaPlayer::mediaStatusChanged, this, [this](QMediaPlayer::MediaStatus estado) {
+        if (estado == QMediaPlayer::EndOfMedia) {
+            ui->progressSlider->setValue(0);
+        }
     });
 }
 

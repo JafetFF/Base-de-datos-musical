@@ -135,7 +135,7 @@
       </widget>
       <widget class="QStackedWidget" name="pagesStackedWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="albumsPage">
         <layout class="QVBoxLayout" name="albumsPageLayout">
@@ -359,7 +359,7 @@
            <number>50</number>
           </property>
           <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
          </widget>
         </item>
