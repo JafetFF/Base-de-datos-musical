@@ -37,6 +37,10 @@ Función que mina un directorio y agrega
 las canciones encontradas a la base de datos
 */
 func MinaYAgrega(directorio string, db *sql.DB) error {
+     directorio, err := filepath.Abs(directorio)
+     if err != nil {
+     	return err
+     }
      metadatos, err := minero.Mina(directorio)
      if err != nil {
          return err

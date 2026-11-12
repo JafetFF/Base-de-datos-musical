@@ -9,6 +9,9 @@ import (
        _ "modernc.org/sqlite"
        "Song/Modelo"
        "strings"
+       "os"
+       "path/filepath"
+       "strconv"
 )
 
 // Main abre la BDD e inicia el servidor http
@@ -28,6 +31,7 @@ func main() {
      mux.HandleFunc("GET /api/health", healthHandler(db))
      mux.HandleFunc("GET /api/rolas", rolasHandler(db))
      mux.HandleFunc("POST /api/minar", minarHandler(db))
+     mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -115,4 +119,34 @@ func minarHandler(db *sql.DB) http.HandlerFunc {
             	"message": "Se minó correctamente",
             })
      }
+}
+
+// portadaHandler regresa la portada de un álbum
+func portadaHandler(w http.ResponseWriter, r *http.Request) {
+     id, err := strconv.Atoi(r.PathValue("id"))
+     if err != nil || id <= 0 {
+        http.Error(w, "ID álbum inválido", http.StatusBadRequest)
+        return
+     }
+
+     extensiones := []string{".jpg", ".png", ".gif", ".webp"}
+
+     for _, extension := range extensiones {
+         ruta := filepath.Join(
+              "BDD",
+              "Portadas",
+              strconv.Itoa(id)+extension,
+         )
+
+         imagen, err := os.ReadFile(ruta)
+         if err != nil {
+            continue
+         }
+
+         w.Header().Set("Content-Type", http.DetectContentType(imagen))
+         w.Write(imagen)
+         return
+     }
+
+     http.Error(w, "No se encontró la portada", http.StatusNotFound)
 }

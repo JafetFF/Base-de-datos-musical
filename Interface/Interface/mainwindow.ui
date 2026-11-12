@@ -147,22 +147,31 @@
           </widget>
          </item>
          <item>
-          <widget class="QTableWidget" name="albumsTable">
-           <column>
-            <property name="text">
-             <string>Álbum</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Intérprete</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Año</string>
-            </property>
-           </column>
+          <widget class="QListWidget" name="albumsListWidget">
+           <property name="iconSize">
+            <size>
+             <width>160</width>
+             <height>160</height>
+            </size>
+           </property>
+           <property name="movement">
+            <enum>QListView::Movement::Static</enum>
+           </property>
+           <property name="resizeMode">
+            <enum>QListView::ResizeMode::Adjust</enum>
+           </property>
+           <property name="spacing">
+            <number>10</number>
+           </property>
+           <property name="gridSize">
+            <size>
+             <width>190</width>
+             <height>220</height>
+            </size>
+           </property>
+           <property name="viewMode">
+            <enum>QListView::ViewMode::IconMode</enum>
+           </property>
           </widget>
          </item>
         </layout>
@@ -307,7 +316,7 @@
       <item>
        <widget class="QLabel" name="currentTrackLabel">
         <property name="text">
-         <string>Ninguna canción seleccionada</string>
+         <string>Ninguna rola seleccionada</string>
         </property>
        </widget>
       </item>

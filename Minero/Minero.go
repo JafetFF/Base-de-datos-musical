@@ -6,7 +6,6 @@ import (
        "io/fs"
        "os"
        "github.com/dhowden/tag"
-       "fmt"
 )
 
 /*
@@ -142,12 +141,6 @@ func LeeEtiquetas(ruta string) (Metadatos, error) {
            continue
     	}
     	datos.Imagenes = append(datos.Imagenes, imagen.Data)
-	fmt.Println(
-    "Tipo:", imagen.Type,
-    "Descripción:", imagen.Description,
-    "Formato:", imagen.MIMEType,
-    "Tamaño:", len(imagen.Data),
-)
     }
 
     return datos, nil

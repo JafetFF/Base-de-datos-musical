@@ -5,6 +5,8 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QMediaPlayer;
+class QAudioOutput;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -28,5 +30,9 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QNetworkAccessManager *administradorRed;
+    QMediaPlayer *reproductor;
+    QAudioOutput *salidaAudio;
+    QString      rutaActual;
+    QString      rutaReproduciendo;
 };
 #endif // MAINWINDOW_H

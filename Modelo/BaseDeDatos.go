@@ -56,8 +56,8 @@ en la bdd y luego las regresa
 */
 func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     renglones, err := db.Query(
-        `SELECT rolas.id_rola, rolas.id_album, rolas.title, rolas.year, rolas.genre,
-	 performers.name, albums.name
+        `SELECT rolas.id_rola, rolas.id_album, rolas.title, rolas.year, rolas.genre, 
+	 performers.name, albums.name, rolas.path
          FROM rolas
 	 LEFT JOIN performers ON rolas.id_performer = performers.id_performer
 	 LEFT JOIN albums ON rolas.id_album = albums.id_album
@@ -86,6 +86,7 @@ func Busca(cadena string, db *sql.DB) ([]Rola, error) {
     	    &rola.genre,
     	    &artista,
     	    &album,
+	    &rola.path,
 	)
 
 	if err != nil {

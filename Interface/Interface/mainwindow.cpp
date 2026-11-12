@@ -12,13 +12,23 @@
 #include <QUrlQuery>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QListWidgetItem>
+#include <QSet>
+#include <QPixmap>
+#include <QIcon>
+#include <QMediaPlayer>
+#include <QAudioOutput>
+#include <QPushButton>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , administradorRed(new QNetworkAccessManager(this))
+    , reproductor(new QMediaPlayer(this))
+    , salidaAudio(new QAudioOutput(this))
 {
     ui->setupUi(this);
+    reproductor->setAudioOutput(salidaAudio);
     connect(administradorRed, &QNetworkAccessManager::finished, this, &MainWindow::procesaRes);
     cargarRolas();
     connect(ui->songsButton, &QPushButton::clicked, this, [this]() {
@@ -26,6 +36,73 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::cargarRolas);
     connect(ui->foldersButton, &QPushButton::clicked, this, &MainWindow::minarDirectorio);
+    connect(ui->albumsButton, &QPushButton::clicked, this, [this]() {
+        ui->pagesStackedWidget->setCurrentWidget(ui->albumsPage);
+    });
+    connect(ui->songsTable, &QTableWidget::currentCellChanged, this, [this](int fila, int, int, int) {
+                if (fila < 0) {
+                    return;
+                }
+                QTableWidgetItem *tituloItem = ui->songsTable->item(fila, 0);
+                QTableWidgetItem *artistaItem = ui->songsTable->item(fila, 1);
+
+                if (!tituloItem || !artistaItem) {
+                    return;
+                }
+                QString titulo = ui->songsTable->item(fila, 0)->text();
+                QString artista = ui->songsTable->item(fila, 1)->text();
+                rutaActual = tituloItem->data(Qt::UserRole).toString();
+                ui->currentTrackLabel->setText(titulo + " - " + artista);
+    });
+    connect(ui->playPauseButton, &QPushButton::clicked,
+            this, [this]() {
+
+                if (rutaActual.isEmpty()) {
+                    return;
+                }
+                if (rutaActual != rutaReproduciendo) {
+                    rutaReproduciendo = rutaActual;
+                    reproductor->setSource(QUrl::fromLocalFile(rutaActual));
+                    reproductor->play();
+                    return;
+                }
+                if (reproductor->playbackState() == QMediaPlayer::PlayingState) {
+                    reproductor->pause();
+                } else {
+                    reproductor->play();
+                }
+    });
+    auto cambiarRola = [this](int desplazamiento) {
+        int filaActual = ui->songsTable->currentRow();
+        int nuevaFila = filaActual + desplazamiento;
+        if (nuevaFila < 0 || nuevaFila >= ui->songsTable->rowCount()) {
+            return;
+        }
+
+        ui->songsTable->setCurrentCell(nuevaFila, 0);
+        QTableWidgetItem *tituloItem = ui->songsTable->item(nuevaFila, 0);
+        if (!tituloItem) {
+            return;
+        }
+
+        rutaActual = tituloItem->data(Qt::UserRole).toString();
+        if (rutaActual.isEmpty()) {
+            return;
+        }
+
+        rutaReproduciendo = rutaActual;
+        reproductor->setSource(QUrl::fromLocalFile(rutaActual));
+        reproductor->play();
+    };
+    connect(ui->previousButton, &QPushButton::clicked,
+            this, [cambiarRola]() {
+                cambiarRola(-1);
+    });
+
+    connect(ui->nextButton, &QPushButton::clicked,
+            this, [cambiarRola]() {
+                cambiarRola(1);
+    });
 }
 
 MainWindow::~MainWindow()
@@ -86,6 +163,29 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
 
+    if (respuesta->url().path().startsWith("/api/portadas/")) {
+        if (respuesta->error() == QNetworkReply::NoError) {
+
+            int idAlbum = respuesta->url().path()
+            .section('/', -1).toInt();
+
+            QPixmap portada;
+            portada.loadFromData(datos);
+
+            for (int i = 0; i < ui->albumsListWidget->count(); i++) {
+                QListWidgetItem *elemento = ui->albumsListWidget->item(i);
+
+                if (elemento->data(Qt::UserRole).toInt() == idAlbum) {
+                    elemento->setIcon(QIcon(portada));
+                    break;
+                }
+            }
+        }
+
+        respuesta->deleteLater();
+        return;
+    }
+
     if (respuesta->error() != QNetworkReply::NoError) {
         qDebug() << "Error al consultar la API:"
                  << respuesta->errorString();
@@ -105,6 +205,39 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
 
     QJsonArray rolas = documento.array();
 
+    QUrlQuery parametros(respuesta->url());
+    if (parametros.queryItemValue("q").isEmpty()) {
+        ui->albumsListWidget->clear();
+
+        QSet<int> albumesAgregados;
+
+        for (const QJsonValue &valor : rolas) {
+            QJsonObject rola = valor.toObject();
+
+            int idAlbum = rola["album_id"].toInt();
+            if (idAlbum <= 0 || albumesAgregados.contains(idAlbum)) {
+                continue;
+            }
+
+            albumesAgregados.insert(idAlbum);
+
+            QString nombre = rola["album"].toString();
+            QString artista = rola["artist"].toString();
+            QString texto = nombre;
+            if (nombre != artista) {
+                texto += "\n" + artista;
+            }
+
+            QListWidgetItem *elemento = new QListWidgetItem(texto);
+            elemento->setData(Qt::UserRole, idAlbum);
+            elemento->setTextAlignment(Qt::AlignHCenter);
+            ui->albumsListWidget->addItem(elemento);
+            QUrl direccionPortada("http://127.0.0.1:8080/api/portadas/" + QString::number(idAlbum));
+            QNetworkRequest peticionPortada(direccionPortada);
+            administradorRed->get(peticionPortada);
+        }
+    }
+
     ui->songsTable->setRowCount(0);
 
     for (const QJsonValue &valor : rolas) {
@@ -113,7 +246,10 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         int fila = ui->songsTable->rowCount();
 
         ui->songsTable->insertRow(fila);
-        ui->songsTable->setItem(fila, 0, new QTableWidgetItem(rola["title"].toString()));
+        QTableWidgetItem *tituloItem = new QTableWidgetItem(rola["title"].toString());
+        tituloItem->setData(Qt::UserRole, rola["path"].toString());
+        ui->songsTable->setItem(fila, 0, tituloItem);
+
         ui->songsTable->setItem(fila, 1, new QTableWidgetItem(rola["artist"].toString()));
         ui->songsTable->setItem(fila, 2, new QTableWidgetItem(rola["album"].toString()));
         ui->songsTable->setItem(fila, 3, new QTableWidgetItem(QString::number(rola["year"].toInt())));
