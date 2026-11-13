@@ -7,6 +7,7 @@ class QNetworkAccessManager;
 class QNetworkReply;
 class QMediaPlayer;
 class QAudioOutput;
+class QListWidget;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -31,6 +32,7 @@ private slots:
     void agregaGrupo();
     void cargarGrupos();
     void consultaGrupo(int id);
+    void cargarIntegrantes(int idGrupo, QListWidget *lista);
 
 private:
     Ui::MainWindow *ui;

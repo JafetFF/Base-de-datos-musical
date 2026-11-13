@@ -192,6 +192,10 @@ void MainWindow::cargarRolas(const QString &busqueda)
 void MainWindow::procesaRes(QNetworkReply *respuesta)
 {
     if (respuesta->url().path().startsWith("/api/grupos/") &&
+        respuesta->url().path().contains("/integrantes")) {
+        return;
+    }
+    if (respuesta->url().path().startsWith("/api/grupos/") &&
         respuesta->operation() == QNetworkAccessManager::PutOperation) {
         QByteArray datos = respuesta->readAll();
         if (respuesta->error() != QNetworkReply::NoError) {
@@ -236,6 +240,177 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         dialogo.setWindowTitle("Datos del grupo");
 
         QFormLayout *formulario = new QFormLayout(&dialogo);
+        QListWidget *integrantes = new QListWidget();
+        formulario->addRow("Integrantes:", integrantes);
+        cargarIntegrantes(id, integrantes);
+
+        QPushButton *agregar = new QPushButton("Agregar integrante");
+        formulario->addRow(agregar);
+
+        connect(agregar, &QPushButton::clicked, &dialogo, [this, id, integrantes, &dialogo]() {
+            QDialog seleccion(&dialogo);
+            seleccion.setWindowTitle("Agregar integrante");
+
+            QVBoxLayout *layout = new QVBoxLayout(&seleccion);
+
+            QListWidget *personas = new QListWidget();
+            layout->addWidget(personas);
+
+            QPushButton *cerrar = new QPushButton("Cerrar");
+            layout->addWidget(cerrar);
+
+            QPushButton *confirmar = new QPushButton("Agregar seleccionado");
+            layout->addWidget(confirmar);
+
+            connect(cerrar, &QPushButton::clicked, &seleccion, &QDialog::reject);
+            QUrl direccionPersonas("http://127.0.0.1:8080/api/personas");
+
+            QNetworkRequest peticionPersonas(direccionPersonas);
+            QNetworkReply *respuestaPersonas = administradorRed->get(peticionPersonas);
+
+            connect(respuestaPersonas, &QNetworkReply::finished, &seleccion, [respuestaPersonas, personas]() {
+                if (respuestaPersonas->error() != QNetworkReply::NoError) {
+                    QMessageBox::warning(
+                        nullptr,
+                        "Error",
+                        "No se pudieron consultar las personas."
+                    );
+                    respuestaPersonas->deleteLater();
+                    return;
+                }
+
+                QJsonDocument documento = QJsonDocument::fromJson(respuestaPersonas->readAll());
+
+                if (documento.isArray()) {
+                    for (const QJsonValue &valor : documento.array()) {
+                        QJsonObject persona = valor.toObject();
+
+                        QString nombre = persona["NombreArtístico"].toString();
+
+                        if (nombre.isEmpty())
+                            nombre = persona["NombreReal"].toString();
+
+                        QListWidgetItem *elemento = new QListWidgetItem(nombre);
+
+                        elemento->setData(Qt::UserRole, persona["ID"].toInt());
+
+                        personas->addItem(elemento);
+                    }
+                }
+                respuestaPersonas->deleteLater();
+            });
+
+            connect(confirmar, &QPushButton::clicked, &seleccion, [this, id, integrantes, personas, &seleccion]() {
+                QListWidgetItem *elemento = personas->currentItem();
+                if (!elemento) {
+                    QMessageBox::warning(
+                    &seleccion,
+                    "Atención",
+                    "Selecciona una persona."
+                    );
+                    return;
+                }
+
+                int idPersona = elemento->data(Qt::UserRole).toInt();
+
+                QUrl direccion(
+                    "http://127.0.0.1:8080/api/grupos/" +
+                    QString::number(id) + "/integrantes"
+                );
+
+                QNetworkRequest peticion(direccion);
+
+                peticion.setHeader(
+                    QNetworkRequest::ContentTypeHeader,
+                    "application/json"
+                );
+
+                QJsonObject datos;
+                datos["idPersona"] = idPersona;
+
+                QNetworkReply *respuesta = administradorRed->post(
+                    peticion,
+                    QJsonDocument(datos).toJson()
+                );
+
+                connect(respuesta, &QNetworkReply::finished, &seleccion, [respuesta, id, integrantes, &seleccion, this]() {
+                    QByteArray respuestaDatos = respuesta->readAll();
+                    if (respuesta->error() != QNetworkReply::NoError) {
+                        QMessageBox::warning(
+                        &seleccion,
+                        "Error",
+                        QString::fromUtf8(respuestaDatos)
+                        );
+                    } else {
+                        QMessageBox::information(
+                        &seleccion,
+                        "Éxito",
+                        "Integrante agregado correctamente."
+                        );
+
+                        cargarIntegrantes(id, integrantes);
+                        seleccion.accept();
+                    }
+
+                    respuesta->deleteLater();
+                });
+            });
+            seleccion.exec();
+        });
+        QPushButton *eliminar = new QPushButton("Eliminar integrante");
+        formulario->addRow(eliminar);
+        connect(eliminar, &QPushButton::clicked, &dialogo, [this, id, integrantes, &dialogo]() {
+            QListWidgetItem *elemento = integrantes->currentItem();
+            if (!elemento) {
+                QMessageBox::warning(
+                    &dialogo,
+                    "Atención",
+                    "Selecciona un integrante para eliminar."
+                );
+                return;
+            }
+
+            int idPersona = elemento->data(Qt::UserRole).toInt();
+
+            auto confirmacion = QMessageBox::question(
+                &dialogo,
+                "Confirmar eliminación",
+                "¿Quieres eliminar a este integrante del grupo?"
+            );
+
+            if (confirmacion != QMessageBox::Yes)
+                return;
+
+            QUrl direccion(
+                "http://127.0.0.1:8080/api/grupos/" +
+                QString::number(id) + "/integrantes/" +
+                QString::number(idPersona)
+            );
+
+            QNetworkRequest peticion(direccion);
+            QNetworkReply *respuesta = administradorRed->deleteResource(peticion);
+
+            connect(respuesta, &QNetworkReply::finished, &dialogo, [this, respuesta, id, integrantes, &dialogo]() {
+                QByteArray datos = respuesta->readAll();
+                if (respuesta->error() != QNetworkReply::NoError) {
+                    QMessageBox::warning(
+                        &dialogo,
+                        "Error",
+                        QString::fromUtf8(datos)
+                    );
+                } else {
+                    QMessageBox::information(
+                        &dialogo,
+                        "Éxito",
+                        "Integrante eliminado correctamente."
+                    );
+
+                    cargarIntegrantes(id, integrantes);
+                }
+
+                respuesta->deleteLater();
+            });
+        });
         QLineEdit *nombre = new QLineEdit(grupo["Nombre"].toString());
         QString fechaInicioOriginal = grupo["FechaInicio"].toString();
         QString fechaFinOriginal = grupo["FechaFin"].toString();
@@ -523,6 +698,11 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
 
+    if (respuesta->url().path() == "/api/personas" &&
+        respuesta->operation() == QNetworkAccessManager::GetOperation) {
+        respuesta->deleteLater();
+        return;
+    }
     QByteArray datos = respuesta->readAll();
 
     if (respuesta->url().path() == "/api/minar") {
@@ -971,4 +1151,47 @@ void MainWindow::cargarGrupos()
     QUrl direccion("http://127.0.0.1:8080/api/grupos");
     QNetworkRequest peticion(direccion);
     administradorRed->get(peticion);
+}
+
+void MainWindow::cargarIntegrantes(int idGrupo, QListWidget *lista)
+{
+    QUrl direccion(
+        "http://127.0.0.1:8080/api/grupos/" +
+        QString::number(idGrupo) + "/integrantes"
+    );
+    QNetworkRequest peticion(direccion);
+    QNetworkReply *respuesta = administradorRed->get(peticion);
+
+    connect(respuesta, &QNetworkReply::finished, lista, [respuesta, lista]() {
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(
+                nullptr,
+                "Error",
+                "No se pudieron consultar los integrantes."
+            );
+            respuesta->deleteLater();
+            return;
+        }
+
+        QJsonDocument documento = QJsonDocument::fromJson(respuesta->readAll());
+
+        if (documento.isArray() && lista) {
+            lista->clear();
+            for (const QJsonValue &valor : documento.array()) {
+                QJsonObject persona = valor.toObject();
+                QString nombre = persona["NombreArtístico"].toString();
+
+                if (nombre.isEmpty())
+                    nombre = persona["NombreReal"].toString();
+
+                QListWidgetItem *elemento = new QListWidgetItem(nombre);
+
+                elemento->setData(Qt::UserRole, persona["ID"].toInt());
+
+                lista->addItem(elemento);
+            }
+        }
+
+        respuesta->deleteLater();
+    });
 }

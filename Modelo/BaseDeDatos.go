@@ -806,7 +806,7 @@ func BuscaIntegrantes(idGrupo int, db *sql.DB) ([]Persona, error) {
      }
      defer filas.Close()
 
-     var integrantes []Persona
+     integrantes := make([]Persona, 0)
 
      for filas.Next() {
          var persona Persona

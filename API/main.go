@@ -41,6 +41,9 @@ func main() {
      mux.HandleFunc("POST /api/grupos", agregaGrupoHandler(db))
      mux.HandleFunc("GET /api/grupos/{id}", grupoHandler(db))
      mux.HandleFunc("PUT /api/grupos/{id}", editaGrupoHandler(db))
+     mux.HandleFunc("GET /api/grupos/{id}/integrantes", integrantesHandler(db))
+     mux.HandleFunc("POST /api/grupos/{id}/integrantes", agregaIntegranteHandler(db))
+     mux.HandleFunc("DELETE /api/grupos/{id}/integrantes/{idPersona}", eliminaIntegranteHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -403,6 +406,103 @@ func editaGrupoHandler(db *sql.DB) http.HandlerFunc {
             json.NewEncoder(w).Encode(map[string]string{
 		"status":  "ok",
             	"message": "Grupo actualizado correctamente",
+            })
+     }
+}
+
+// integrantesHandler consulta los integrantes de un grupo
+func integrantesHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            id, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || id <= 0 {
+               http.Error(w, "Id de grupo inválido",
+	       http.StatusBadRequest)
+               return
+            }
+            integrantes, err := modelo.BuscaIntegrantes(id, db)
+            if err != nil {
+               http.Error(w, "Error al consultar los integrantes",
+	       http.StatusInternalServerError)
+               return
+            }
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(integrantes)
+     }
+}
+
+// agregaIntegranteHandler agrega una persona a un grupo
+func agregaIntegranteHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            idGrupo, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || idGrupo <= 0 {
+               http.Error(w, "ID de grupo inválido",
+	       http.StatusBadRequest)
+               return
+            }
+
+            var datos struct {
+            	IDPersona int `json:"idPersona"`
+            }
+
+            err = json.NewDecoder(r.Body).Decode(&datos)
+            if err != nil || datos.IDPersona <= 0 {
+               http.Error(w, "Id de persona inválido",
+	       http.StatusBadRequest)
+               return
+            }
+
+            err = modelo.AgregaIntegrante(datos.IDPersona, idGrupo, db)
+            if err != nil {
+               if errors.Is(err, sql.ErrNoRows) {
+               	  http.Error(w, "No existe el grupo o la persona",
+		  http.StatusNotFound)
+                  return
+               }
+
+               http.Error(w, "No se pudo agregar el integrante",
+	       http.StatusConflict)
+               return
+            }
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusCreated)
+            json.NewEncoder(w).Encode(map[string]string{
+		"mensaje": "Integrante agregado correctamente",
+            })
+     }
+}
+
+// eliminaIntegranteHandler elimina a una persona de un grupo
+func eliminaIntegranteHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            idGrupo, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || idGrupo <= 0 {
+               http.Error(w, "ID de grupo inválido",
+	       http.StatusBadRequest)
+               return
+            }
+            idPersona, err := strconv.Atoi(r.PathValue("idPersona"))
+            if err != nil || idPersona <= 0 {
+               http.Error(w, "Id de persona inválido",
+	       http.StatusBadRequest)
+               return
+            }
+
+            err = modelo.EliminaIntegrante(idPersona, idGrupo, db)
+            if err != nil {
+               if errors.Is(err, sql.ErrNoRows) {
+                  http.Error(w, "La persona no pertenece a este grupo",
+		  http.StatusNotFound)
+                  return
+               }
+
+               http.Error(w, "No se pudo eliminar el integrante",
+	       http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(map[string]string{
+                "mensaje": "Integrante eliminado correctamente",
             })
      }
 }

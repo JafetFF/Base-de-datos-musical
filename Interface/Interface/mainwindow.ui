@@ -135,7 +135,7 @@
       </widget>
       <widget class="QStackedWidget" name="pagesStackedWidget">
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="albumsPage">
         <layout class="QVBoxLayout" name="albumsPageLayout">
@@ -234,13 +234,6 @@
             <widget class="QPushButton" name="addArtistButton">
              <property name="text">
               <string>Agregar Artista</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="addMemberButton">
-             <property name="text">
-              <string>Añadir integrante</string>
              </property>
             </widget>
            </item>
