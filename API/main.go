@@ -32,6 +32,7 @@ func main() {
      mux.HandleFunc("GET /api/rolas", rolasHandler(db))
      mux.HandleFunc("POST /api/minar", minarHandler(db))
      mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
+     mux.HandleFunc("GET /api/personas", personasHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -149,4 +150,20 @@ func portadaHandler(w http.ResponseWriter, r *http.Request) {
      }
 
      http.Error(w, "No se encontró la portada", http.StatusNotFound)
+}
+
+// personasHandler obtiene todas las personas de la BDD
+// y devuelve sus datos en json
+func personasHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            personas, err := modelo.BuscaPersonas(db)
+            if err != nil {
+               http.Error(w, "Ocurrió un error al consultar las personas",
+               http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(personas)
+     }
 }

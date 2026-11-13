@@ -826,3 +826,46 @@ func BuscaIntegrantes(idGrupo int, db *sql.DB) ([]Persona, error) {
 
      return integrantes, nil
 }
+
+/*
+Busca y regresa a todas las personas registradas en la BDD
+*/
+func BuscaPersonas(db *sql.DB) ([]Persona, error) {
+     filas, err := db.Query(`
+            SELECT id_person,
+                   stage_name,
+                   real_name,
+                   birth_date,
+                   death_date
+                   FROM persons
+                   ORDER BY id_person`)
+     if err != nil {
+        return nil, err
+     }
+     defer filas.Close()
+
+     personas := make([]Persona, 0)
+
+     for filas.Next() {
+         var persona Persona
+
+         err := filas.Scan(
+             &persona.ID,
+             &persona.NombreArtístico,
+             &persona.NombreReal,
+             &persona.FechaNacimiento,
+             &persona.FechaFallecimiento,
+         )
+         if err != nil {
+            return nil, err
+         }
+
+         personas = append(personas, persona)
+     }
+
+     if err := filas.Err(); err != nil {
+        return nil, err
+     }
+
+     return personas, nil
+}

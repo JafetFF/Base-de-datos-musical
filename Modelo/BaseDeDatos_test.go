@@ -1639,3 +1639,77 @@ func TestBuscaIntegrantesVacio(t *testing.T) {
         t.Errorf("Se esperaba una lista vacía, se obtuvieron: %d integrantes", len(integrantes))
      }
 }
+
+/*
+Prueba para verificar que se obtengan
+correctamente todas las personas en la BDD
+*/
+func TestBuscaPersonas(t *testing.T) {
+     db := bddPrueba(t)
+
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     _, err := db.Exec(`
+        INSERT INTO persons (
+               id_person,
+               stage_name,
+               real_name,
+               birth_date,
+               death_date
+        ) VALUES
+          (1, 'Robert', 'Roberto Castro',
+          '03/12/1945', '24/03/1998'),
+          (2, 'Alans', 'Alan Ramos Sol',
+          '15/08/2002', '')
+     `)
+     if err != nil {
+        t.Fatalf("No se pudieron insertar las personas: %v", err)
+     }
+
+     personas, err := BuscaPersonas(db)
+     if err != nil {
+        t.Fatalf("No se esperaba un error: %v", err)
+     }
+
+     if len(personas) != 2 {
+        t.Fatalf("Se esperaban 2 personas, se obtuvieron: %d", len(personas))
+     }
+
+     if personas[0].ID != 1 ||
+        personas[0].NombreArtístico != "Robert" ||
+        personas[0].NombreReal != "Roberto Castro" ||
+        personas[0].FechaNacimiento != "03/12/1945" ||
+        personas[0].FechaFallecimiento != "24/03/1998" {
+        t.Errorf("Los datos de la primera persona son incorrectos: %+v", personas[0])
+     }
+
+     if personas[1].ID != 2 ||
+        personas[1].NombreArtístico != "Alans" ||
+        personas[1].NombreReal != "Alan Ramos Sol" ||
+        personas[1].FechaNacimiento != "15/08/2002" ||
+        personas[1].FechaFallecimiento != "" {
+        t.Errorf("Los datos de la segunda persona son incorrectos: %+v", personas[1])
+     }
+}
+
+/*
+Prueba para verificar el caso cuando no hay personas registradas
+*/
+func TestBuscaPersonasVacio(t *testing.T) {
+     db := bddPrueba(t)
+
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     personas, err := BuscaPersonas(db)
+     if err != nil {
+        t.Fatalf("No se esperaba un error: %v", err)
+     }
+
+     if len(personas) != 0 {
+        t.Errorf("Se esperaba una lista vacía, se obtuvieron: %d personas", len(personas))
+     }
+}
