@@ -273,6 +273,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         ui->songsTable->setItem(fila, 1, new QTableWidgetItem(rola["artist"].toString()));
         ui->songsTable->setItem(fila, 2, new QTableWidgetItem(rola["album"].toString()));
         ui->songsTable->setItem(fila, 3, new QTableWidgetItem(QString::number(rola["year"].toInt())));
+        ui->songsTable->setItem(fila, 4, new QTableWidgetItem(rola["genre"].toString()));
     }
 
     qDebug() << "Rolas recibidas:" << rolas.size();
