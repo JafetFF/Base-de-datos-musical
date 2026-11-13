@@ -33,7 +33,7 @@ func main() {
      mux.HandleFunc("POST /api/minar", minarHandler(db))
      mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
      mux.HandleFunc("GET /api/personas", personasHandler(db))
-     mux.HandleFunc("GET /api/personas", agregaPersonaHandler(db)) 
+     mux.HandleFunc("POST /api/personas", agregaPersonaHandler(db)) 
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
