@@ -35,7 +35,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->songsButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->songsPage);
     });
-    connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::cargarRolas);
+    connect(ui->searchLineEdit, &QLineEdit::returnPressed, this, [this]() {
+        cargarRolas(ui->searchLineEdit->text());
+    });
     connect(ui->foldersButton, &QPushButton::clicked, this, &MainWindow::minarDirectorio);
     connect(ui->albumsButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->albumsPage);

@@ -187,6 +187,9 @@
          </item>
          <item>
           <widget class="QTableWidget" name="songsTable">
+           <property name="columnCount">
+            <number>5</number>
+           </property>
            <column>
             <property name="text">
              <string>Título</string>
@@ -194,7 +197,7 @@
            </column>
            <column>
             <property name="text">
-             <string>Intérprete</string>
+             <string>Artista</string>
             </property>
            </column>
            <column>
@@ -205,6 +208,11 @@
            <column>
             <property name="text">
              <string>Año</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Género</string>
             </property>
            </column>
           </widget>

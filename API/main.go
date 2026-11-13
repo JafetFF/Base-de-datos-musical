@@ -70,8 +70,11 @@ func rolasHandler(db *sql.DB) http.HandlerFunc {
      return func(w http.ResponseWriter, r *http.Request) {
      	    busqueda := r.URL.Query().Get("q")
 
-	    if strings.TrimSpace(busqueda) == "" {
+	    busqueda = strings.TrimSpace(busqueda)
+	    if busqueda == "" {
 	       busqueda = `title~""`
+	    } else if !strings.ContainsAny(busqueda, "=<>!~&|") {
+	      busqueda = "title~" + strconv.Quote(busqueda)
 	    }
 	    rolas, err := modelo.BuscaCompilada(busqueda, db)
 	    if err != nil {
