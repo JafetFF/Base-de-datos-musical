@@ -38,7 +38,9 @@ func main() {
      mux.HandleFunc("GET /api/personas/{id}", personaHandler(db))
      mux.HandleFunc("PUT /api/personas/{id}", editaPersonaHandler(db))
      mux.HandleFunc("GET /api/grupos", gruposHandler(db))
-     mux.HandleFunc("POST /api/grupos/", agregaGrupoHandler(db))
+     mux.HandleFunc("POST /api/grupos", agregaGrupoHandler(db))
+     mux.HandleFunc("GET /api/grupos/{id}", grupoHandler(db))
+     mux.HandleFunc("PUT /api/grupos/{id}", editaGrupoHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -343,4 +345,64 @@ func agregaGrupoHandler(db *sql.DB) http.HandlerFunc {
             	"message": "Grupo registrado correctamente",
             })
     }
+}
+
+// grupoHandler obtiene un grupo de la BDD
+func grupoHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            id, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || id <= 0 {
+               http.Error(w, "Id grupo inválido",
+               http.StatusBadRequest)
+               return
+            }
+            grupo, err := modelo.BuscaGrupo(id, db)
+            if err != nil {
+               http.Error(w, "No se encontró el grupo",
+               http.StatusNotFound)
+               return
+            }
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(grupo)
+     }
+}
+
+// editaGrupoHandler edita los datos de un grupo
+func editaGrupoHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            id, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || id <= 0 {
+               http.Error(w, "ID de grupo inválido",
+               http.StatusBadRequest)
+               return
+            }
+
+            var grupo modelo.Grupo
+            err = json.NewDecoder(r.Body).Decode(&grupo)
+            if err != nil {
+               http.Error(w, "Solicitud de json inválida",
+               http.StatusBadRequest)
+               return
+            }
+
+            if strings.TrimSpace(grupo.Nombre) == "" {
+               http.Error(w, "El nombre del grupo es obligatorio",
+               http.StatusBadRequest)
+               return
+            }
+
+            grupo.ID = id
+            err = modelo.EditaGrupo(grupo, db)
+            if err != nil {
+               http.Error(w, "Error al editar el grupo: "+err.Error(),
+               http.StatusInternalServerError)
+               return
+            }
+
+	    w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+            	"message": "Grupo actualizado correctamente",
+            })
+     }
 }

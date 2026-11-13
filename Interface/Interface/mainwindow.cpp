@@ -163,6 +163,14 @@ MainWindow::MainWindow(QWidget *parent)
         ui->pagesStackedWidget->setCurrentWidget(ui->groupsPage);
         cargarGrupos();
     });
+    connect(ui->groupsTable, &QTableWidget::cellDoubleClicked, this, [this](int fila, int) {
+        QTableWidgetItem *item = ui->groupsTable->item(fila, 0);
+        if (!item) {
+            return;
+        }
+        int id = item->data(Qt::UserRole).toInt();
+        consultaGrupo(id);
+    });
 }
 
 MainWindow::~MainWindow()
@@ -183,6 +191,149 @@ void MainWindow::cargarRolas(const QString &busqueda)
 
 void MainWindow::procesaRes(QNetworkReply *respuesta)
 {
+    if (respuesta->url().path().startsWith("/api/grupos/") &&
+        respuesta->operation() == QNetworkAccessManager::PutOperation) {
+        QByteArray datos = respuesta->readAll();
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(
+                this,
+                "Error al editar",
+                QString::fromUtf8(datos)
+            );
+        } else {
+            QMessageBox::information(
+                this,
+                "Edición exitosa",
+                "Los datos del grupo se actualizaron correctamente."
+            );
+            cargarGrupos();
+        }
+        respuesta->deleteLater();
+        return;
+    }
+    if (respuesta->url().path().startsWith("/api/grupos/") &&
+        respuesta->operation() == QNetworkAccessManager::GetOperation) {
+        QByteArray datos = respuesta->readAll();
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(
+                this,
+                "Error",
+                "No se pudieron consultar los datos del grupo:\n" +
+                QString::fromUtf8(datos)
+            );
+            respuesta->deleteLater();
+            return;
+        }
+        QJsonDocument documento = QJsonDocument::fromJson(datos);
+        if (!documento.isObject()) {
+            respuesta->deleteLater();
+            return;
+        }
+        QJsonObject grupo = documento.object();
+        int id = grupo["ID"].toInt();
+
+        QDialog dialogo(this);
+        dialogo.setWindowTitle("Datos del grupo");
+
+        QFormLayout *formulario = new QFormLayout(&dialogo);
+        QLineEdit *nombre = new QLineEdit(grupo["Nombre"].toString());
+        QString fechaInicioOriginal = grupo["FechaInicio"].toString();
+        QString fechaFinOriginal = grupo["FechaFin"].toString();
+
+        QLineEdit *inicio = new QLineEdit(fechaInicioOriginal.isEmpty() ? "" : QDate::fromString(fechaInicioOriginal, Qt::ISODate).toString("dd/MM/yyyy"));
+
+        QLineEdit *fin = new QLineEdit(fechaFinOriginal.isEmpty() ? "" : QDate::fromString(fechaFinOriginal, Qt::ISODate).toString("dd/MM/yyyy"));
+
+        nombre->setReadOnly(true);
+        inicio->setReadOnly(true);
+        fin->setReadOnly(true);
+
+        formulario->addRow("Nombre:", nombre);
+        formulario->addRow("Fecha de inicio:", inicio);
+        formulario->addRow("Fecha de fin:", fin);
+
+        QPushButton *editar = new QPushButton("Editar");
+        QPushButton *guardar = new QPushButton("Guardar");
+        QPushButton *cerrar = new QPushButton("Cerrar");
+
+        guardar->setEnabled(false);
+
+        formulario->addRow(editar, guardar);
+        formulario->addRow(cerrar);
+
+        connect(editar, &QPushButton::clicked, &dialogo, [&]() {
+            nombre->setReadOnly(false);
+            inicio->setReadOnly(false);
+            fin->setReadOnly(false);
+
+            editar->setEnabled(false);
+            guardar->setEnabled(true);
+        });
+
+        connect(cerrar, &QPushButton::clicked, &dialogo, &QDialog::reject);
+
+        connect(guardar, &QPushButton::clicked, &dialogo, [&]() {
+            QString nombreGrupo = nombre->text().trimmed();
+            QString fechaInicio = inicio->text().trimmed();
+            QString fechaFin = fin->text().trimmed();
+
+            if (nombreGrupo.isEmpty()) {
+                QMessageBox::warning(
+                    &dialogo, "Error", "El nombre del grupo es obligatorio."
+                    );
+                return;
+            }
+
+            QDate inicioFecha = QDate::fromString(fechaInicio, "dd/MM/yyyy");
+            QDate finFecha = QDate::fromString(fechaFin, "dd/MM/yyyy");
+
+            if (!fechaInicio.isEmpty() && !inicioFecha.isValid()) {
+                QMessageBox::warning(
+                    &dialogo, "Error", "La fecha de inicio no es válida."
+                    );
+                return;
+            }
+
+            if (!fechaFin.isEmpty()) {
+                if (!finFecha.isValid() || fechaInicio.isEmpty() ||
+                    !inicioFecha.isValid() || finFecha <= inicioFecha) {
+                    QMessageBox::warning(
+                        &dialogo,
+                        "Error",
+                        "La fecha de fin debe ser posterior a la fecha de inicio."
+                        );
+                    return;
+                }
+            }
+
+            QJsonObject datos;
+            datos["Nombre"] = nombreGrupo;
+            datos["FechaInicio"] = inicioFecha.isValid() ? inicioFecha.toString(Qt::ISODate) : "";
+            datos["FechaFin"] = finFecha.isValid() ? finFecha.toString(Qt::ISODate) : "";
+
+            QUrl direccion("http://127.0.0.1:8080/api/grupos/" + QString::number(id));
+
+            QNetworkRequest peticion(direccion);
+            peticion.setHeader(
+                QNetworkRequest::ContentTypeHeader,
+                "application/json"
+            );
+
+            QNetworkReply *respuesta = administradorRed->put(
+                peticion,
+                QJsonDocument(datos).toJson()
+            );
+
+            connect(respuesta, &QNetworkReply::finished, &dialogo, [&]() {
+                if (respuesta->error() == QNetworkReply::NoError)
+                    dialogo.accept();
+            });
+        });
+
+        dialogo.exec();
+        respuesta->deleteLater();
+        return;
+    }
     if (respuesta->url().path() == "/api/grupos" &&
         respuesta->operation() == QNetworkAccessManager::PostOperation) {
         QByteArray datos = respuesta->readAll();
@@ -723,6 +874,16 @@ void MainWindow::consultaPersona(int id)
         QString::number(id)
     );
 
+    QNetworkRequest peticion(direccion);
+    administradorRed->get(peticion);
+}
+
+void MainWindow::consultaGrupo(int id)
+{
+    QUrl direccion(
+        "http://127.0.0.1:8080/api/grupos/" +
+        QString::number(id)
+    );
     QNetworkRequest peticion(direccion);
     administradorRed->get(peticion);
 }

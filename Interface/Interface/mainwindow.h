@@ -30,6 +30,7 @@ private slots:
     void consultaPersona(int id);
     void agregaGrupo();
     void cargarGrupos();
+    void consultaGrupo(int id);
 
 private:
     Ui::MainWindow *ui;
