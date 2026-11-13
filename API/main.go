@@ -33,8 +33,7 @@ func main() {
      mux.HandleFunc("POST /api/minar", minarHandler(db))
      mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
      mux.HandleFunc("GET /api/personas", personasHandler(db))
-     mux.HandleFunc("GET /api/personas", agregaPersonaHandler(db))   
-     mux.HandleFunc("GET /api/personas/{id}", personaHandler(db))
+     mux.HandleFunc("GET /api/personas", agregaPersonaHandler(db)) 
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -71,6 +70,9 @@ func rolasHandler(db *sql.DB) http.HandlerFunc {
      return func(w http.ResponseWriter, r *http.Request) {
      	    busqueda := r.URL.Query().Get("q")
 
+	    if strings.TrimSpace(busqueda) == "" {
+	       busqueda = `title~""`
+	    }
 	    rolas, err := modelo.BuscaCompilada(busqueda, db)
 	    if err != nil {
 	       http.Error(w, "Error al consultar las canciones",

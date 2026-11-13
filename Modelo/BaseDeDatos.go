@@ -392,7 +392,7 @@ func BuscaCompilada(cadena string, db *sql.DB) ([]Rola, error) {
      }
      defer filas.Close()
 
-     rola := make([]Rola, 0) 
+     rolas := make([]Rola, 0) 
 
      for filas.Next() {
        	 var rola Rola
