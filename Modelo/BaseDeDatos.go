@@ -874,3 +874,41 @@ func BuscaPersonas(db *sql.DB) ([]Persona, error) {
 
      return personas, nil
 }
+
+/*
+Función que busca y regresa los grupos de la BDD
+*/
+func BuscaGrupos(db *sql.DB) ([]Grupo, error) {
+     filas, err := db.Query(
+            `SELECT id_group, name, start_date, end_date
+            FROM groups
+            ORDER BY name`,
+     )
+     if err != nil {
+        return nil, err
+     }
+     defer filas.Close()
+
+     var grupos []Grupo
+
+     for filas.Next() {
+         var grupo Grupo
+         err := filas.Scan(
+             &grupo.ID,
+             &grupo.Nombre,
+             &grupo.FechaInicio,
+             &grupo.FechaFin,
+         )
+         if err != nil {
+            return nil, err
+         }
+
+         grupos = append(grupos, grupo)
+     }
+
+     if err := filas.Err(); err != nil {
+        return nil, err
+     }
+
+     return grupos, nil
+}

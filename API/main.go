@@ -35,6 +35,10 @@ func main() {
      mux.HandleFunc("GET /api/personas", personasHandler(db))
      mux.HandleFunc("POST /api/personas", agregaPersonaHandler(db))
      mux.HandleFunc("GET /api/artistas", artistasHandler(db))
+     mux.HandleFunc("GET /api/personas/{id}", personaHandler(db))
+     mux.HandleFunc("PUT /api/personas/{id}", editaPersonaHandler(db))
+     mux.HandleFunc("GET /api/grupos", gruposHandler(db))
+     mux.HandleFunc("POST /api/grupos/", agregaGrupoHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -225,4 +229,118 @@ func artistasHandler(db *sql.DB) http.HandlerFunc {
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(artistas)
      }
+}
+
+// personaHandler obtiene una persona de la BDD
+func personaHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            id, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || id <= 0 {
+               http.Error(w, "Id de persona inválido",
+               http.StatusBadRequest)
+               return
+            }
+
+            persona, err := modelo.BuscaPersona(id, db)
+            if err != nil {
+               http.Error(w, "No se encontró a la persona",
+               http.StatusNotFound)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(persona)
+     }
+}
+
+// editaPersonaHandler edita los datos de una persona
+func editaPersonaHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            id, err := strconv.Atoi(r.PathValue("id"))
+            if err != nil || id <= 0 {
+               http.Error(w, "Id de persona inválido",
+               http.StatusBadRequest)
+               return
+            }
+
+            var persona modelo.Persona
+
+            err = json.NewDecoder(r.Body).Decode(&persona)
+            if err != nil {
+               http.Error(w, "Solicitud de json inválida",
+               http.StatusBadRequest)
+               return
+            }
+
+            if strings.TrimSpace(persona.NombreArtístico) == "" &&
+               strings.TrimSpace(persona.NombreReal) == "" {
+               http.Error(w, "Proporciona al menos un nombre",
+               http.StatusBadRequest)
+               return
+            }
+
+            persona.ID = id
+
+            err = modelo.EditaPersona(persona, db)
+            if err != nil {
+               http.Error(w, "Error al editar la persona: "+err.Error(),
+               http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+
+            json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+            	"message": "Persona actualizada correctamente",
+            })
+    }
+}
+
+// Consulta los grupos de la BDD
+func gruposHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            grupos, err := modelo.BuscaGrupos(db)
+            if err != nil {
+               http.Error(w, "Error al consultar los grupos",
+               http.StatusInternalServerError)
+               return
+            }
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(grupos)
+     }
+}
+
+// agregaGrupoHandler agrega un grupo en la BDD
+func agregaGrupoHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            var grupo modelo.Grupo
+            err := json.NewDecoder(r.Body).Decode(&grupo)
+            if err != nil {
+               http.Error(w, "Solicitud de json inválida",
+               http.StatusBadRequest)
+               return
+            }
+
+            if strings.TrimSpace(grupo.Nombre) == "" {
+               http.Error(w, "El nombre del grupo es obligatorio",
+               http.StatusBadRequest)
+               return
+            }
+
+            err = modelo.AgregaGrupo(grupo, db)
+            if err != nil {
+               http.Error(w, "Error al registrar el grupo: "+err.Error(),
+               http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusCreated)
+
+            json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+            	"message": "Grupo registrado correctamente",
+            })
+    }
 }

@@ -27,6 +27,9 @@ private slots:
     void procesaRes(QNetworkReply *respuesta);
     void minarDirectorio();
     void agregaPersona();
+    void consultaPersona(int id);
+    void agregaGrupo();
+    void cargarGrupos();
 
 private:
     Ui::MainWindow *ui;

@@ -105,9 +105,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="genresButton">
+         <widget class="QPushButton" name="groupButton">
           <property name="text">
-           <string>N/A</string>
+           <string>Grupos</string>
           </property>
          </widget>
         </item>
@@ -238,13 +238,6 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="addGroupButton">
-             <property name="text">
-              <string>Crear grupo</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <widget class="QPushButton" name="addMemberButton">
              <property name="text">
               <string>Añadir integrante</string>
@@ -282,17 +275,60 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="genresPage">
-        <layout class="QVBoxLayout" name="genresPageLayout">
+       <widget class="QWidget" name="groupsPage">
+        <layout class="QVBoxLayout" name="groupsPageLayout">
          <item>
-          <widget class="QLabel" name="genresTitleLabel">
+          <widget class="QLabel" name="groupsTitleLabel">
            <property name="text">
-            <string>Géneros</string>
+            <string>Grupos</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QListWidget" name="genresList"/>
+          <layout class="QHBoxLayout" name="groupsActionsLayout">
+           <item>
+            <widget class="QPushButton" name="addGroupButton">
+             <property name="text">
+              <string>Crear grupo</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="groupsActionsSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="groupsTable">
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>150</number>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Nombre</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Fecha de inicio</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Fecha de término</string>
+            </property>
+           </column>
+          </widget>
          </item>
         </layout>
        </widget>
