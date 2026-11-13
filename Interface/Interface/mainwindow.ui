@@ -100,14 +100,14 @@
         <item>
          <widget class="QPushButton" name="artistsButton">
           <property name="text">
-           <string>Intérpretes</string>
+           <string>Artistas</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="genresButton">
           <property name="text">
-           <string>Géneros</string>
+           <string>N/A</string>
           </property>
          </widget>
         </item>
@@ -135,7 +135,7 @@
       </widget>
       <widget class="QStackedWidget" name="pagesStackedWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="albumsPage">
         <layout class="QVBoxLayout" name="albumsPageLayout">
@@ -224,7 +224,7 @@
          <item>
           <widget class="QLabel" name="artistsTitleLabel">
            <property name="text">
-            <string>Intérpretes</string>
+            <string>Artistas</string>
            </property>
           </widget>
          </item>
@@ -233,7 +233,7 @@
            <item>
             <widget class="QPushButton" name="addArtistButton">
              <property name="text">
-              <string>Agregar intérprete</string>
+              <string>Agregar Artista</string>
              </property>
             </widget>
            </item>

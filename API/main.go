@@ -33,7 +33,8 @@ func main() {
      mux.HandleFunc("POST /api/minar", minarHandler(db))
      mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
      mux.HandleFunc("GET /api/personas", personasHandler(db))
-     mux.HandleFunc("POST /api/personas", agregaPersonaHandler(db)) 
+     mux.HandleFunc("POST /api/personas", agregaPersonaHandler(db))
+     mux.HandleFunc("GET /api/artistas", artistasHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -208,4 +209,20 @@ func agregaPersonaHandler(db *sql.DB) http.HandlerFunc {
             	"message": "Persona registrada correctamente",
             })
     }
+}
+
+// artistasHandler obtiene todos los artistas de la BDD
+// y regresa sus datos en un json
+func artistasHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            artistas, err := modelo.BuscaArtistas(db)
+            if err != nil {
+               http.Error(w, "Ocurrió un error al consultar los artistas",
+               http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(artistas)
+     }
 }

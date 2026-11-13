@@ -34,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     cargarRolas();
     connect(ui->songsButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->songsPage);
+        cargarRolas(ui->searchLineEdit->text());
     });
     connect(ui->searchLineEdit, &QLineEdit::returnPressed, this, [this]() {
         cargarRolas(ui->searchLineEdit->text());
@@ -123,6 +124,15 @@ MainWindow::MainWindow(QWidget *parent)
             ui->progressSlider->setValue(0);
         }
     });
+    connect(ui->artistsButton, &QPushButton::clicked, this, [this]() {
+        ui->pagesStackedWidget->setCurrentWidget(ui->artistsPage);
+    });
+    connect(ui->artistsButton, &QPushButton::clicked, this, [this]() {
+        ui->pagesStackedWidget->setCurrentWidget(ui->artistsPage);
+        QUrl direccion("http://127.0.0.1:8080/api/artistas");
+        QNetworkRequest peticion(direccion);
+        administradorRed->get(peticion);
+    });
 }
 
 MainWindow::~MainWindow()
@@ -183,6 +193,47 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
 
+    if (respuesta->url().path() == "/api/artistas") {
+        QJsonDocument documento = QJsonDocument::fromJson(datos);
+        if (!documento.isArray()) {
+            respuesta->deleteLater();
+            return;
+        }
+
+        QJsonArray artistas = documento.array();
+
+        ui->artistsTable->setRowCount(0);
+
+        for (const QJsonValue &valor : artistas) {
+            QJsonObject artista = valor.toObject();
+
+            int fila = ui->artistsTable->rowCount();
+            ui->artistsTable->insertRow(fila);
+
+            int tipo = artista["Tipo"].toInt();
+
+            QString nombreTipo;
+            if (tipo == 0) {
+                nombreTipo = "Persona";
+            } else if (tipo == 1) {
+                nombreTipo = "Grupo";
+            } else {
+                nombreTipo = "Desconocido";
+            }
+
+            QTableWidgetItem *tipoItem = new QTableWidgetItem(nombreTipo);
+            QTableWidgetItem *nombreItem = new QTableWidgetItem(
+                artista["Nombre"].toString()
+                );
+
+            nombreItem->setData(Qt::UserRole, artista["Id"].toInt());
+            ui->artistsTable->setItem(fila, 0, tipoItem);
+            ui->artistsTable->setItem(fila, 1, nombreItem);
+        }
+
+        respuesta->deleteLater();
+        return;
+    }
     if (respuesta->url().path().startsWith("/api/portadas/")) {
         if (respuesta->error() == QNetworkReply::NoError) {
 
@@ -207,9 +258,6 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
     }
 
     if (respuesta->error() != QNetworkReply::NoError) {
-        qDebug() << "Error al consultar la API:"
-                 << respuesta->errorString();
-
         respuesta->deleteLater();
         return;
     }
@@ -217,8 +265,6 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
     QJsonDocument documento = QJsonDocument::fromJson(datos);
 
     if (!documento.isArray()) {
-        qDebug() << "La respuesta no contiene un arreglo json";
-
         respuesta->deleteLater();
         return;
     }
@@ -275,8 +321,6 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         ui->songsTable->setItem(fila, 3, new QTableWidgetItem(QString::number(rola["year"].toInt())));
         ui->songsTable->setItem(fila, 4, new QTableWidgetItem(rola["genre"].toString()));
     }
-
-    qDebug() << "Rolas recibidas:" << rolas.size();
 
     respuesta->deleteLater();
 }
