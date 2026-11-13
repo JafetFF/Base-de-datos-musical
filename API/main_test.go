@@ -8,6 +8,9 @@ import (
 	_ "modernc.org/sqlite"
 	"os"
 	"path/filepath"
+	"net/http"
+	"Song/Modelo"
+	"bytes"
 )
 
 // Función que regresa una bdd de prueba con el esquema
@@ -107,3 +110,101 @@ func TestRolasHandlerSinRolas(t *testing.T) {
         t.Errorf("Se esperaban 0 rolas, y se recibieron %d", len(rolas))
      }
 }
+
+/*
+Prueba que verifica que el registro sea correcto
+de una persona por medio de la petición POST
+*/
+func TestAgregaPersonaHandler(t *testing.T) {
+     db := bddPrueba(t)
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     persona := modelo.Persona{
+             NombreArtístico:    "John Valtierra",
+             NombreReal:         "Francisco John Valtierra",
+             FechaNacimiento:    "20/08/1990",
+             FechaFallecimiento: "",
+     }
+
+     datos, _ := json.Marshal(persona)
+
+     solicitud := httptest.NewRequest(
+               http.MethodPost,
+               "/api/personas",
+               bytes.NewBuffer(datos),
+     )
+
+     respuesta := httptest.NewRecorder()
+
+     handler := agregaPersonaHandler(db)
+     handler.ServeHTTP(respuesta, solicitud)
+
+     if respuesta.Code != http.StatusCreated {
+        t.Fatalf("Se esperaba 201, se obtuvo: %d", respuesta.Code)
+     }
+
+     personaGuardada, err := modelo.BuscaPersona(1, db)
+     if err != nil {
+        t.Fatalf("No se pudo consultar la persona: %v", err)
+     }
+
+     if personaGuardada.NombreArtístico != "John Valtierra" {
+        t.Errorf("Nombre artístico incorrecto: %s", personaGuardada.NombreArtístico)
+     }
+}
+
+/*
+Prueba que verifica que se vuelve a hacer
+una petición cuando el json es inválido
+*/
+func TestAgregaPersonaHandlerJSONInvalido(t *testing.T) {
+     db := bddPrueba(t)
+     defer db.Close()
+
+     solicitud := httptest.NewRequest(
+               http.MethodPost,
+               "/api/personas",
+               bytes.NewBufferString("{json incorrecto"),
+     )
+
+     respuesta := httptest.NewRecorder()
+
+     handler := agregaPersonaHandler(db)
+     handler.ServeHTTP(respuesta, solicitud)
+
+     if respuesta.Code != http.StatusBadRequest {
+        t.Errorf("Se esperaba 400, pero se obtuvo: %d", respuesta.Code)
+     }
+}
+
+/*
+Prueba que comprueba que se rechace el registro
+cuando ambos nombres son vacíos
+*/
+func TestAgregaPersonaHandlerNombresVacios(t *testing.T) {
+     db := bddPrueba(t)
+     defer db.Close()
+
+     datos := `{
+           "nombreArtistico": "",
+           "nombreReal": ""
+     }`
+
+     solicitud := httptest.NewRequest(
+               http.MethodPost,
+               "/api/personas",
+               bytes.NewBufferString(datos),
+     )
+
+     respuesta := httptest.NewRecorder()
+
+     handler := agregaPersonaHandler(db)
+     handler.ServeHTTP(respuesta, solicitud)
+
+     if respuesta.Code != http.StatusBadRequest {
+        t.Errorf("Se esperaba 400, pero se obtuvo: %d", respuesta.Code)
+     }
+}
+

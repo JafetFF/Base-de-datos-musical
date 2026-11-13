@@ -33,6 +33,8 @@ func main() {
      mux.HandleFunc("POST /api/minar", minarHandler(db))
      mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
      mux.HandleFunc("GET /api/personas", personasHandler(db))
+     mux.HandleFunc("GET /api/personas", agregaPersonaHandler(db))   
+     mux.HandleFunc("GET /api/personas/{id}", personaHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -69,7 +71,7 @@ func rolasHandler(db *sql.DB) http.HandlerFunc {
      return func(w http.ResponseWriter, r *http.Request) {
      	    busqueda := r.URL.Query().Get("q")
 
-	    rolas, err := modelo.Busca(busqueda, db)
+	    rolas, err := modelo.BuscaCompilada(busqueda, db)
 	    if err != nil {
 	       http.Error(w, "Error al consultar las canciones",
 	       http.StatusInternalServerError)
@@ -166,4 +168,39 @@ func personasHandler(db *sql.DB) http.HandlerFunc {
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(personas)
      }
+}
+
+// agregaPersonaHandler registra a una persona en la BDD
+func agregaPersonaHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            var persona modelo.Persona
+            err := json.NewDecoder(r.Body).Decode(&persona)
+            if err != nil {
+               http.Error(w, "Solicitud de json inválida",
+               http.StatusBadRequest)
+               return
+            }
+
+            if strings.TrimSpace(persona.NombreArtístico) == "" &&
+	       strings.TrimSpace(persona.NombreReal) == "" {
+               http.Error(w, "Proporciona al menos un nombre",
+               http.StatusBadRequest)
+               return
+            }
+
+            err = modelo.AgregaPersona(persona, db)
+            if err != nil {
+               http.Error(w, "Error al registrar la persona",
+               http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusCreated)
+
+            json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+            	"message": "Persona registrada correctamente",
+            })
+    }
 }

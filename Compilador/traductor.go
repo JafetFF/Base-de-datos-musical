@@ -248,8 +248,8 @@ func (t *Traductor) ConstruyeConsulta(n Nodo) (string, []any, error) {
     	      	  COALESCE(rolas.year, 0),
     	     	  COALESCE(rolas.genre, '')
 	      	  FROM rolas
-	      	  JOIN performers ON rolas.id_performer = performers.id_performer
-	      JOIN albums ON rolas.id_album = albums.id_album`
+	      	  LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+	      LEFT JOIN albums ON rolas.id_album = albums.id_album`
 
      consulta += " WHERE " + where
      return consulta, parametros, nil

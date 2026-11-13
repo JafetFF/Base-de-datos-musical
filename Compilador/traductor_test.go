@@ -465,8 +465,8 @@ func TestConstruyeConsulta(t *testing.T) {
     	      	  COALESCE(rolas.year, 0),
     	     	  COALESCE(rolas.genre, '')
 	      	  FROM rolas
-	      	  JOIN performers ON rolas.id_performer = performers.id_performer
-	      JOIN albums ON rolas.id_album = albums.id_album WHERE rolas.title = ?`,
+	      	  LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+	      LEFT JOIN albums ON rolas.id_album = albums.id_album WHERE rolas.title = ?`,
              esperadoArgs: []any{"Eyes On You"},
          },
          {
@@ -490,8 +490,8 @@ func TestConstruyeConsulta(t *testing.T) {
     	      	  COALESCE(rolas.year, 0),
     	     	  COALESCE(rolas.genre, '')
 	      	  FROM rolas
-	      	  JOIN performers ON rolas.id_performer = performers.id_performer
-	      JOIN albums ON rolas.id_album = albums.id_album WHERE performers.name = ?`,
+	      	  LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+	      LEFT JOIN albums ON rolas.id_album = albums.id_album WHERE performers.name = ?`,
              esperadoArgs: []any{"Lovkn"},
          },
          {
@@ -515,8 +515,8 @@ func TestConstruyeConsulta(t *testing.T) {
     	      	  COALESCE(rolas.year, 0),
     	     	  COALESCE(rolas.genre, '')
 	      	  FROM rolas
-	      	  JOIN performers ON rolas.id_performer = performers.id_performer
-	      JOIN albums ON rolas.id_album = albums.id_album WHERE albums.name = ?`,
+	      	  LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+	      LEFT JOIN albums ON rolas.id_album = albums.id_album WHERE albums.name = ?`,
              esperadoArgs: []any{"Hits"},
          },
          {
@@ -549,8 +549,8 @@ func TestConstruyeConsulta(t *testing.T) {
     	      	  COALESCE(rolas.year, 0),
     	     	  COALESCE(rolas.genre, '')
 	      	  FROM rolas
-	      	  JOIN performers ON rolas.id_performer = performers.id_performer
-	      JOIN albums ON rolas.id_album = albums.id_album WHERE (performers.name = ? AND albums.name = ?)`,
+	      	  LEFT JOIN performers ON rolas.id_performer = performers.id_performer
+	      LEFT JOIN albums ON rolas.id_album = albums.id_album WHERE (performers.name = ? AND albums.name = ?)`,
              esperadoArgs: []any{"Alfonso Peduto", "Binary Data IX"},
          },
      }

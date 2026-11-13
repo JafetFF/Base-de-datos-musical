@@ -392,31 +392,31 @@ func BuscaCompilada(cadena string, db *sql.DB) ([]Rola, error) {
      }
      defer filas.Close()
 
-    var rolas []Rola
+     rola := make([]Rola, 0) 
 
-    for filas.Next() {
-    	var rola Rola
+     for filas.Next() {
+       	 var rola Rola
 
-    	err := filas.Scan(
-            &rola.id,
-            &rola.idPerformer,
-            &rola.idAlbum,
-            &rola.artist,
-            &rola.album,
-            &rola.albumPath,
-            &rola.title,
-            &rola.path,
-	    &rola.track,
-            &rola.year,
-            &rola.genre,
-    	)
+    	 err := filas.Scan(
+             &rola.id,
+             &rola.idPerformer,
+             &rola.idAlbum,
+             &rola.artist,
+             &rola.album,
+             &rola.albumPath,
+             &rola.title,
+             &rola.path,
+	     &rola.track,
+             &rola.year,
+             &rola.genre,
+     	 )
 
-    	if err != nil {
-           return nil, err
-    	}
+    	 if err != nil {
+            return nil, err
+    	 }
 
-    	rolas = append(rolas, rola)
-    }
+    	 rolas = append(rolas, rola)
+     }
 
     if err := filas.Err(); err != nil {
        return nil, err
@@ -476,9 +476,14 @@ func AgregaPersona(persona Persona, db *sql.DB) error {
 
      defer tx.Rollback()
 
+     nombre := persona.NombreArtístico
+     if strings.TrimSpace(nombre) == "" {
+     	nombre = persona.NombreReal
+     }
+
      resultado, err := tx.Exec(
       	   	`INSERT INTO performers (name, id_type)
-        	VALUES (?, ?)`, persona.NombreArtístico, 0)
+        	VALUES (?, ?)`, nombre, 0)
      if err != nil {
         return err
      }
