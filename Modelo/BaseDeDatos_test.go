@@ -1372,3 +1372,270 @@ func TestEditaGrupoNoExiste(t *testing.T) {
         t.Errorf("Se esperaba un error, se obtuvo: %v", err)
      }
 }
+
+/*
+Test para verificar que se agrega correctamente
+una persona a un grupo
+*/
+func TestAgregaIntegrante(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+     _, err := db.Exec(
+        `INSERT INTO persons (
+    		id_person,
+    		stage_name,
+    		real_name,
+    		birth_date,
+    		death_date
+	) VALUES (1, 'Kurt Cobain', 'Kurt Donald Cobain',
+	'20/02/1967', '05/04/1994');
+        INSERT INTO groups VALUES (1, 'Metallica', '28/10/1981', '');
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     err = AgregaIntegrante(1, 1, db)
+     if err != nil {
+        t.Fatalf("Error al agregar integrante: %v", err)
+     }
+
+     var idPersona, idGrupo int
+     
+     err = db.QueryRow(
+         `SELECT id_person, id_group
+         FROM in_group
+     `).Scan(&idPersona, &idGrupo)
+
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if idPersona != 1 {
+        t.Errorf("Id de persona incorrecto: %d", idPersona)
+     }
+
+     if idGrupo != 1 {
+        t.Errorf("Id de grupo incorrecto: %d", idGrupo)
+     }
+}
+
+/*
+Prueba que verifica que se regrese un error
+al intentar agregar una persona inexistente a un grupo
+*/
+func TestAgregaIntegrantePersonaNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     _, err := db.Exec(`
+     	INSERT INTO groups VALUES (1, 'Metallica', '28/10/1981', '')
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     err = AgregaIntegrante(1, 1, db)
+
+     if err != sql.ErrNoRows {
+        t.Errorf("Se esperaba un error pero se obtuvo: %v", err)
+     }
+}
+
+/*
+Prueba que verifica que se lanze un error
+al intentar agregar una persona a un grupo inexistente
+*/
+func TestAgregaIntegranteGrupoNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     _, err := db.Exec(`
+        INSERT INTO persons (
+    	       id_person,
+    	       stage_name,
+    	       real_name,
+    	       birth_date,
+    	       death_date
+	) VALUES (1, 'Kurt Cobain', 'Kurt Donald Cobain',
+	'20/02/1967', '05/04/1994')
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     err = AgregaIntegrante(1, 1, db)
+
+     if err != sql.ErrNoRows {
+        t.Errorf("Se esperaba un error pero se obtuvo: %v", err)
+     }
+}
+
+// Prueba general para EliminaIntegrante
+func TestEliminaIntegrante(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     _, err := db.Exec(`
+     	INSERT INTO persons (
+    		id_person,
+    		stage_name,
+    		real_name,
+    		birth_date,
+    		death_date
+	) VALUES (1, 'Kurt Cobain', 'Kurt Donald Cobain',
+	'20/02/1967', '05/04/1994');
+        INSERT INTO groups VALUES (1, 'Metallica', '28/10/1981', '');
+
+        INSERT INTO in_group VALUES (1, 1);
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     err = EliminaIntegrante(1, 1, db)
+     if err != nil {
+        t.Fatalf("Error al eliminar integrante: %v", err)
+     }
+
+     var cantidad int
+
+     err = db.QueryRow(`
+         SELECT COUNT(*) FROM in_group
+     `).Scan(&cantidad)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if cantidad != 0 {
+        t.Errorf("Se esperaba 0 integrantes pero se obtuvo: %d", cantidad)
+     }
+     err = db.QueryRow(`
+         SELECT COUNT(*) FROM persons WHERE id_person = 1
+     `).Scan(&cantidad)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if cantidad != 1 {
+        t.Errorf("La persona debería seguir existiendo, se obtuvo: %d", cantidad)
+     }
+
+     err = db.QueryRow(`
+         SELECT COUNT(*) FROM groups WHERE id_group = 1
+     `).Scan(&cantidad)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if cantidad != 1 {
+        t.Errorf("El grupo debería seguir existiendo, se obtuvo: %d", cantidad)
+     }
+}
+
+/*
+Prueba que verifica que se regrese un error
+al intentar eliminar a una persona de un grupo
+el cual no pertenece ni existe
+*/
+func TestEliminaIntegranteNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     err := EliminaIntegrante(1, 1, db)
+
+     if err != sql.ErrNoRows {
+        t.Errorf("Se esperaba error pero se obtuvo: %v", err)
+     }
+}
+
+// Test general para buscaIntegrantes
+func TestBuscaIntegrantes(t *testing.T) {
+     db := bddPrueba(t)
+  
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     _, err := db.Exec(
+        `INSERT INTO persons VALUES
+                (1, 'Fabricio', 'Federic Montes',
+                '13/04/1978', '03/07/2008'),
+                (2, 'Brian S.', 'Brian Soto Cruz',
+                '14/11/1990', '');
+        INSERT INTO in_group VALUES
+               (1, 1),
+               (2, 1);
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     integrantes, err := BuscaIntegrantes(1, db)
+     if err != nil {
+        t.Fatalf("Error al buscar integrantes: %v", err)
+     }
+
+     if len(integrantes) != 2 {
+        t.Fatalf("Se esperaban 2 integrantes, se obtuvieron: %d", len(integrantes))
+     }
+
+     if integrantes[0].ID != 1 {
+        t.Errorf("ID incorrecto: %d", integrantes[0].ID)
+     }
+
+     if integrantes[0].NombreArtístico != "Fabricio" {
+        t.Errorf("Nombre artístico incorrecto: %s", integrantes[0].NombreArtístico)
+     }
+
+     if integrantes[0].NombreReal != "Federic Montes" {
+        t.Errorf("Nombre real incorrecto: %s", integrantes[0].NombreReal)
+     }
+
+    if integrantes[0].FechaNacimiento != "13/04/1978" {
+        t.Errorf("Fecha de nacimiento incorrecta: %s", integrantes[0].FechaNacimiento)
+    }
+
+    if integrantes[0].FechaFallecimiento != "03/07/2008" {
+        t.Errorf("Fecha de fallecimiento incorrecta: %s", integrantes[0].FechaFallecimiento)
+    }
+
+    if integrantes[1].NombreArtístico != "Brian S." {
+        t.Errorf("Nombre artístico incorrecto: %s", integrantes[1].NombreArtístico)
+    }
+}
+
+/*
+Prueba para verificar el caso cuando el grupo no tiene integrantes
+*/
+func TestBuscaIntegrantesVacio(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     db.SetMaxOpenConns(1)
+
+     integrantes, err := BuscaIntegrantes(1, db)
+     if err != nil {
+        t.Fatalf("No se esperaba un error: %v", err)
+     }
+
+     if len(integrantes) != 0 {
+        t.Errorf("Se esperaba una lista vacía, se obtuvieron: %d integrantes", len(integrantes))
+     }
+}

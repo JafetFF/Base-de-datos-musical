@@ -704,3 +704,125 @@ func EditaGrupo(grupo Grupo, db *sql.DB) error {
 
      return tx.Commit()
 }
+
+/*
+Agrega una persona como un integrante de un grupo
+*/
+func AgregaIntegrante(idPersona, idGrupo int, db *sql.DB) error {
+     tx, err := db.Begin()
+     if err != nil {
+        return err
+     }
+
+     defer tx.Rollback()
+
+     var existe bool
+
+     err = tx.QueryRow(
+         `SELECT EXISTS(
+                 SELECT 1 FROM persons WHERE id_person = ?
+         )`, idPersona,
+     ).Scan(&existe)
+
+     if err != nil {
+        return err
+     }
+
+     if !existe {
+        return sql.ErrNoRows
+     }
+
+     err = tx.QueryRow(
+         `SELECT EXISTS(
+                 SELECT 1 FROM groups WHERE id_group = ?
+         )`, idGrupo,
+     ).Scan(&existe)
+
+     if err != nil {
+        return err
+     }
+
+     if !existe {
+        return sql.ErrNoRows
+     }
+
+     _, err = tx.Exec(
+        `INSERT INTO in_group (id_person, id_group)
+        VALUES (?, ?)`, idPersona, idGrupo)
+
+     if err != nil {
+        return err
+     }
+
+     return tx.Commit()
+}
+
+/*
+Elimina una persona de un grupo
+*/
+func EliminaIntegrante(idPersona, idGrupo int, db *sql.DB) error {
+     resultado, err := db.Exec(
+                `DELETE FROM in_group
+         	WHERE id_person = ? AND id_group = ?`,
+        	idPersona,
+        	idGrupo,
+     )
+     if err != nil {
+        return err
+     }
+     filas, err := resultado.RowsAffected()
+     if err != nil {
+        return err
+     }
+
+     if filas == 0 {
+        return sql.ErrNoRows
+     }
+     return nil
+}
+
+/*
+Busca a los integrantes de un grupo con ayuda de su id
+*/
+func BuscaIntegrantes(idGrupo int, db *sql.DB) ([]Persona, error) {
+     filas, err := db.Query(
+            `SELECT persons.id_person,
+                    persons.stage_name,
+                    persons.real_name,
+                    persons.birth_date,
+                    persons.death_date
+         	    FROM persons
+         	    JOIN in_group
+         	    ON persons.id_person = in_group.id_person
+         	    WHERE in_group.id_group = ?
+		    ORDER BY persons.id_person`, idGrupo)
+     if err != nil {
+        return nil, err
+     }
+     defer filas.Close()
+
+     var integrantes []Persona
+
+     for filas.Next() {
+         var persona Persona
+
+         err := filas.Scan(
+             &persona.ID,
+             &persona.NombreArtístico,
+             &persona.NombreReal,
+             &persona.FechaNacimiento,
+             &persona.FechaFallecimiento,
+         )
+         if err != nil {
+            return nil, err
+         }
+
+         integrantes = append(integrantes, persona)
+     }
+
+     if err := filas.Err(); err != nil {
+        return nil, err
+     }
+
+     return integrantes, nil
+}
