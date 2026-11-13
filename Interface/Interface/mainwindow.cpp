@@ -20,6 +20,16 @@
 #include <QAudioOutput>
 #include <QPushButton>
 #include <QSlider>
+#include <QDialog>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QDialogButtonBox>
+#include <QVBoxLayout>
+#include <QDate>
+#include <QDateEdit>
+#include <QCheckBox>
+#include <QHBoxLayout>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -133,6 +143,7 @@ MainWindow::MainWindow(QWidget *parent)
         QNetworkRequest peticion(direccion);
         administradorRed->get(peticion);
     });
+    connect(ui->addArtistButton, &QPushButton::clicked, this, &MainWindow::agregaPersona);
 }
 
 MainWindow::~MainWindow()
@@ -351,4 +362,77 @@ void MainWindow::minarDirectorio()
     QByteArray datos = documento.toJson();
 
     administradorRed->post(peticion, datos);
+}
+
+void MainWindow::agregaPersona()
+{
+    QDialog dialogo(this);
+    dialogo.setWindowTitle("Agregar artista");
+    QLineEdit *nombreArtistico = new QLineEdit(&dialogo);
+    QLineEdit *nombreReal = new QLineEdit(&dialogo);
+
+
+    QCheckBox *tieneNacimiento = new QCheckBox("Especificar fecha");
+    QCheckBox *tieneFallecimiento = new QCheckBox("Especificar fecha");
+    tieneFallecimiento->setEnabled(false);
+    QDateEdit *fechaNacimiento = new QDateEdit(&dialogo);
+    QDateEdit *fechaFallecimiento = new QDateEdit(&dialogo);
+
+
+    fechaNacimiento->setDisplayFormat("dd/MM/yyyy");
+    fechaFallecimiento->setDisplayFormat("dd/MM/yyyy");
+    fechaNacimiento->setCalendarPopup(true);
+    fechaFallecimiento->setCalendarPopup(true);
+    fechaNacimiento->setEnabled(false);
+    fechaFallecimiento->setEnabled(false);
+
+    connect(tieneNacimiento, &QCheckBox::toggled, fechaNacimiento, &QDateEdit::setEnabled);
+    connect(tieneFallecimiento, &QCheckBox::toggled, fechaFallecimiento, &QDateEdit::setEnabled);
+    connect(tieneNacimiento, &QCheckBox::toggled, tieneFallecimiento, &QCheckBox::setEnabled);
+    connect(tieneNacimiento, &QCheckBox::toggled, this, [tieneFallecimiento](bool marcado) {
+                if (!marcado)
+                    tieneFallecimiento->setChecked(false);
+    });
+
+    QFormLayout *formulario = new QFormLayout;
+
+    formulario->addRow("Nombre artístico:", nombreArtistico);
+    formulario->addRow("Nombre real:", nombreReal);
+    QHBoxLayout *filaNacimiento = new QHBoxLayout;
+    filaNacimiento->addWidget(tieneNacimiento);
+    filaNacimiento->addWidget(fechaNacimiento);
+
+    QHBoxLayout *filaFallecimiento = new QHBoxLayout;
+    filaFallecimiento->addWidget(tieneFallecimiento);
+    filaFallecimiento->addWidget(fechaFallecimiento);
+
+    formulario->addRow("Fecha de nacimiento:", filaNacimiento);
+    formulario->addRow("Fecha de fallecimiento:", filaFallecimiento);
+
+    QDialogButtonBox *botones = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel
+        );
+    connect(botones, &QDialogButtonBox::accepted,
+            &dialogo, &QDialog::accept);
+    connect(botones, &QDialogButtonBox::rejected,
+            &dialogo, &QDialog::reject);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialogo);
+    layout->addLayout(formulario);
+    layout->addWidget(botones);
+
+    if(dialogo.exec() != QDialog::Accepted)
+        return;
+
+    if (tieneNacimiento->isChecked() &&
+        tieneFallecimiento->isChecked()) {
+
+        if (fechaNacimiento->date() >= fechaFallecimiento->date()) {
+            QMessageBox::warning(this,
+                "Fechas inválidas", "La fecha de fallecimiento debe ser posterior a la fecha de nacimiento."
+                );
+
+            return;
+        }
+    }
 }

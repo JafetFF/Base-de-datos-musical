@@ -26,6 +26,7 @@ private slots:
     void cargarRolas(const QString &busqueda = "");
     void procesaRes(QNetworkReply *respuesta);
     void minarDirectorio();
+    void agregaPersona();
 
 private:
     Ui::MainWindow *ui;
