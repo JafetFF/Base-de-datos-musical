@@ -921,3 +921,454 @@ func TestBuscaCompiladaSinResultados(t *testing.T) {
          len(rolas))
      }
 }
+
+/*
+Prueba unitaria para la función BuscaArtistas
+*/
+func TestBuscaArtistas(t *testing.T) {
+     db := bddPrueba(t)
+     
+     defer db.Close()
+
+     _, err := db.Exec(
+        `INSERT INTO performers VALUES
+        (1, 0, 'Adele'),
+        (2, 1, 'Omar'),
+        (3, 2, 'Unknown')
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     artistas, err := BuscaArtistas(db)
+     if err != nil {
+        t.Fatalf("Ocurrió un error al buscar artistas: %v", err)
+     }
+
+     if len(artistas) != 3 {
+        t.Fatalf("Se esperaban 3 artistas, pero se obtuvieron %d", len(artistas))
+     }
+
+     esperados := []Artista{
+               {Id: 1, Nombre: "Adele", Tipo: 0},
+       	       {Id: 2, Nombre: "Omar", Tipo: 1},
+               {Id: 3, Nombre: "Unknown", Tipo: 2},
+     }
+
+     for i, artista := range artistas {
+         if artista != esperados[i] {
+            t.Errorf("Artista %d incorrecto. Se esperaba %+v, se obtuvo %+v",
+	    i, esperados[i], artista)
+         }
+     }
+}
+
+// Prueba unitaria para AgregaPersona
+func TestAgregaPersona(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     persona := Persona{
+             NombreArtístico:    "Saleka",
+             NombreReal:         "Saleka Shyamalan",
+             FechaNacimiento:    "01/08/1996",
+             FechaFallecimiento: "",
+     }
+
+     err := AgregaPersona(persona, db)
+     if err != nil {
+        t.Fatalf("Error al agregar persona: %v", err)
+     }
+     var idPerformer, idPerson int
+     var nombre, nombreReal, nacimiento, fallecimiento string
+
+     err = db.QueryRow(
+         `SELECT performers.id_performer, persons.id_person,
+	 performers.name, persons.real_name,
+         persons.birth_date, persons.death_date
+         FROM performers
+         JOIN persons ON performers.id_performer = persons.id_person
+     `).Scan(
+	&idPerformer,
+        &idPerson,
+        &nombre,
+        &nombreReal,
+        &nacimiento,
+        &fallecimiento,
+     )
+     if err != nil {
+        t.Fatalf("Ocurrió un error al consultar los registros: %v", err)
+     }
+     if idPerformer != idPerson {
+        t.Errorf("Los id's no coinciden: %d y %d",
+        idPerformer, idPerson)
+     }
+
+     if nombre != persona.NombreArtístico {
+        t.Errorf("Nombre artístico incorrecto: %s", nombre)
+     }
+
+     if nombreReal != persona.NombreReal {
+        t.Errorf("El nombre real es incorrecto: %s", nombreReal)
+     }
+
+     if nacimiento != persona.FechaNacimiento {
+        t.Errorf("Fecha de nacimiento incorrecta: %s", nacimiento)
+     }
+
+     if fallecimiento != "" {
+        t.Errorf("La fecha de fallecimiento debería estar vacía: %s",
+        fallecimiento)
+     }
+}
+
+// Prueba para la función BuscaPersona
+func TestBuscaPersona(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     _, err := db.Exec(`
+        INSERT INTO persons VALUES (
+        1, 'Kurt Cobain',
+        'Kurt Donald Cobain',
+        '20/02/1967',
+        '05/04/1994'
+        );
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     persona, err := BuscaPersona(1, db)
+     if err != nil {
+        t.Fatalf("Error al buscar persona: %v", err)
+     }
+
+     if persona.ID != 1 {
+        t.Errorf("Id incorrecto: %d", persona.ID)
+     }
+
+     if persona.NombreArtístico != "Kurt Cobain" {
+        t.Errorf("Nombre artístico incorrecto: %s",
+        persona.NombreArtístico)
+     }
+
+     if persona.NombreReal != "Kurt Donald Cobain" {
+        t.Errorf("Nombre real incorrecto: %s",
+        persona.NombreReal)
+     }
+
+     if persona.FechaNacimiento != "20/02/1967" {
+        t.Errorf("Fecha de nacimiento incorrecta: %s",
+        persona.FechaNacimiento)
+     }
+
+     if persona.FechaFallecimiento != "05/04/1994" {
+        t.Errorf("Fecha de fallecimiento incorrecta: %s",
+        persona.FechaFallecimiento)
+     }
+}
+
+/*
+Test que verifica que se envía un error
+al buscar una persona que no está registrada
+*/
+func TestBuscaPersonaNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+    
+     _, err := BuscaPersona(99, db)
+ 
+     if err != sql.ErrNoRows {
+        t.Errorf("Se esperaba un error pero se obtuvo: %v", err)
+     }
+}
+
+// Prueba para la función EditaPersona
+func TestEditaPersona(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     _, err := db.Exec(`
+        INSERT INTO performers VALUES (1, 0, 'Kurt Cobain');
+        INSERT INTO persons VALUES (
+               1, 'Kurt Cobain',
+               'Kurt Donald Cobain',
+               '20/02/1967',
+               '05/04/1994'
+        );
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     persona := Persona{
+             ID:                 1,
+             NombreArtístico:    "Kurt Cobain (Nirvana)",
+             NombreReal:         "Kurt Donald Cobain",
+             FechaNacimiento:    "15/09/1960",
+             FechaFallecimiento: "05/02/1996",
+     }
+
+     err = EditaPersona(persona, db)
+     if err != nil {
+        t.Fatalf("Error al editar persona: %v", err)
+     }
+
+     var nombrePerformer, nombreArtístico, nombreReal string
+
+     err = db.QueryRow(`
+         SELECT performers.name,
+                persons.stage_name,
+                persons.real_name
+         FROM performers
+         JOIN persons ON performers.id_performer = persons.id_person
+         WHERE persons.id_person = 1
+     `).Scan(
+	&nombrePerformer,
+        &nombreArtístico,
+        &nombreReal,
+     )
+
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if nombrePerformer != persona.NombreArtístico {
+        t.Errorf("Nombre del intérprete incorrecto: %s", nombrePerformer)
+     }
+
+     if nombreArtístico != persona.NombreArtístico {
+        t.Errorf("Nombre artístico incorrecto: %s", nombreArtístico)
+     }
+
+     if nombreReal != persona.NombreReal {
+        t.Errorf("Nombre real incorrecto: %s", nombreReal)
+     }
+}
+
+/*
+Test para verificar que se devuelve un error
+al intentar editar una persona inexistente
+*/
+func TestEditaPersonaNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     persona := Persona{
+             ID:              99,
+             NombreArtístico: "Persona inexistente",
+     }
+
+     err := EditaPersona(persona, db)
+
+     if err == nil {
+        t.Error("Se esperaba un error al editar una persona inexistente")
+     }
+}
+
+/*
+Test para verificar que se añade
+correctamente un grupo a la BDD
+*/
+func TestAgregaGrupo(t *testing.T) {
+     db := bddPrueba(t)
+
+     defer db.Close()
+   
+     grupo := Grupo{
+           Nombre:      "Metallica",
+           FechaInicio: "28/10/1981",
+           FechaFin:    "",
+     }
+
+     err := AgregaGrupo(grupo, db)
+     if err != nil {
+        t.Fatalf("Error al agregar grupo: %v", err)
+     }
+
+     var idPerformer, idGroup, tipo int
+     var nombrePerformer, nombreGrupo, inicio, fin string
+
+     err = db.QueryRow(
+         `SELECT performers.id_performer,
+                performers.id_type,
+                performers.name,
+                groups.id_group,
+                groups.name,
+                groups.start_date,
+                groups.end_date
+         FROM performers
+         JOIN groups ON performers.id_performer = groups.id_group
+     `).Scan(
+	&idPerformer,
+        &tipo,
+        &nombrePerformer,
+        &idGroup,
+        &nombreGrupo,
+        &inicio,
+        &fin,
+     )
+
+     if err != nil {
+        t.Fatalf("Error al consultar los registros: %v", err)
+     }
+
+     if idPerformer != idGroup {
+        t.Errorf("Los id's no coinciden: %d y %d",
+        idPerformer, idGroup)
+     }
+     if tipo != 1 {
+        t.Errorf("El tipo debería ser 1 (de Grupo), se obtuvo: %d", tipo)
+     }
+     if nombrePerformer != grupo.Nombre {
+        t.Errorf("Nombre del artista incorrecto: %s", nombrePerformer)
+     }
+     if nombreGrupo != grupo.Nombre {
+        t.Errorf("Nombre del grupo incorrecto: %s", nombreGrupo)
+     }
+     if inicio != grupo.FechaInicio {
+        t.Errorf("Fecha de inicio incorrecta: %s", inicio)
+     }
+     if fin != grupo.FechaFin {
+        t.Errorf("Fecha de final incorrecta: %s", fin)
+     }
+}
+
+/*
+Prueba para verificar la función buscaGrupo
+*/
+func TestBuscaGrupo(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     _, err := db.Exec(`   
+        INSERT INTO groups VALUES (
+               1, 'Metallica', '28/10/1981', ''
+        );
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     grupo, err := BuscaGrupo(1, db)
+     if err != nil {
+        t.Fatalf("Ocurrió un error al buscar grupo: %v", err)
+     }
+     if grupo.ID != 1 {
+        t.Errorf("Id incorrecto: %d", grupo.ID)
+     }
+     if grupo.Nombre != "Metallica" {
+        t.Errorf("Nombre incorrecto: %s", grupo.Nombre)
+     }
+     if grupo.FechaInicio != "28/10/1981" {
+        t.Errorf("Fecha de inicio incorrecta: %s", grupo.FechaInicio)
+     }
+     if grupo.FechaFin != "" {
+        t.Errorf("Fecha de fin incorrecta: %s", grupo.FechaFin)
+     }
+}
+
+/*
+Prueba para verificar que se devuelve un error
+al intentar buscar un grupo inexistente
+*/
+func TestBuscaGrupoNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+    
+     defer db.Close()
+
+     _, err := BuscaGrupo(1, db)
+
+     if err != sql.ErrNoRows {
+        t.Errorf("Se esperaba un error pero se obtuvo: %v", err)
+     }
+}
+
+/*
+Prueba para EditaGrupo
+*/
+func TestEditaGrupo(t *testing.T) {
+     db := bddPrueba(t)
+     
+     defer db.Close()
+
+     _, err := db.Exec(`
+        INSERT INTO performers VALUES (1, 1, 'Metallica');
+        INSERT INTO groups VALUES (1, 'Metallica', '28/10/1981', '');
+     `)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     grupo := Grupo{
+           ID:          1,
+           Nombre:      "Metalica",
+           FechaInicio: "20/09/1989",
+           FechaFin:    "14/08/2024",
+     }
+
+     err = EditaGrupo(grupo, db)
+     if err != nil {
+        t.Fatalf("Error al editar grupo: %v", err)
+     }
+
+     var nombrePerformer string
+     var nombreGrupo, inicio, fin string
+
+     err = db.QueryRow(
+         `SELECT name FROM performers WHERE id_performer = 1
+     `).Scan(&nombrePerformer)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     err = db.QueryRow(
+         `SELECT name, start_date, end_date
+         FROM groups
+         WHERE id_group = 1
+     `).Scan(&nombreGrupo, &inicio, &fin)
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if nombrePerformer != grupo.Nombre {
+        t.Errorf("Nombre del artista incorrecto: %s", nombrePerformer)
+     }
+
+     if nombreGrupo != grupo.Nombre {
+        t.Errorf("Nombre del grupo incorrecto: %s", nombreGrupo)
+     }
+
+     if inicio != grupo.FechaInicio {
+        t.Errorf("Fecha de inicio incorrecta: %s", inicio)
+     }
+
+     if fin != grupo.FechaFin {
+        t.Errorf("Fecha de fin incorrecta: %s", fin)
+     }
+}
+
+// Comprueba que se regresa un error al editar un grupo inexistente
+func TestEditaGrupoNoExiste(t *testing.T) {
+     db := bddPrueba(t)
+   
+     defer db.Close()
+
+     grupo := Grupo{
+           ID:          1,
+           Nombre:      "Metallica",
+           FechaInicio: "28/10/1981",
+           FechaFin:    "",
+     } 
+
+     err := EditaGrupo(grupo, db)
+
+     if err != sql.ErrNoRows {
+        t.Errorf("Se esperaba un error, se obtuvo: %v", err)
+     }
+}

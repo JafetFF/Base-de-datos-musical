@@ -424,3 +424,283 @@ func BuscaCompilada(cadena string, db *sql.DB) ([]Rola, error) {
 
     return rolas, nil
 }
+
+/*
+Busca y regresa todos los artistas en la BDD
+*/
+func BuscaArtistas(db *sql.DB) ([]Artista, error) {
+     filas, err := db.Query(
+            `SELECT id_performer, name, id_type
+            FROM performers ORDER BY name`,
+     )
+
+     if err != nil {
+        return nil, err
+     }
+     
+     defer filas.Close()
+
+     var artistas []Artista
+
+     for filas.Next() {
+         var artista Artista
+
+         err := filas.Scan(
+             &artista.Id,
+             &artista.Nombre,
+             &artista.Tipo,
+         )
+
+         if err != nil {
+            return nil, err
+         }
+
+         artistas = append(artistas, artista)
+     }
+
+     if err := filas.Err(); err != nil {
+        return nil, err
+     }
+
+     return artistas, nil
+}
+
+/*
+Agrega una persona a la BDD como persona y como artista
+*/
+func AgregaPersona(persona Persona, db *sql.DB) error {
+     tx, err := db.Begin()
+     if err != nil {
+        return err
+     }
+
+     defer tx.Rollback()
+
+     resultado, err := tx.Exec(
+      	   	`INSERT INTO performers (name, id_type)
+        	VALUES (?, ?)`, persona.NombreArtístico, 0)
+     if err != nil {
+        return err
+     }
+
+     id, err := resultado.LastInsertId()
+     if err != nil {
+        return err
+     }
+
+     _, err = tx.Exec(
+     	`INSERT INTO persons (
+          	id_person, stage_name, real_name,
+            	birth_date, death_date
+         )
+         VALUES (?, ?, ?, ?, ?)`,
+         id,
+         persona.NombreArtístico,
+         persona.NombreReal,
+         persona.FechaNacimiento,
+         persona.FechaFallecimiento,
+     )
+     if err != nil {
+        return err
+     }
+
+     return tx.Commit()
+}
+
+/*
+Busca una persona por su Id
+*/
+func BuscaPersona(id int, db *sql.DB) (Persona, error) {
+     var persona Persona
+
+     err := db.QueryRow(
+         `SELECT id_person, stage_name, real_name,
+         birth_date, death_date
+         FROM persons
+         WHERE id_person = ?`, id,
+     ).Scan(
+         &persona.ID,
+         &persona.NombreArtístico,
+         &persona.NombreReal,
+         &persona.FechaNacimiento,
+         &persona.FechaFallecimiento,
+     )
+
+     if err != nil {
+        return Persona{}, err
+     }
+     return persona, nil
+}
+
+/*
+Edita una persona en la BDD
+*/
+func EditaPersona(persona Persona, db *sql.DB) error {
+     tx, err := db.Begin()
+     if err != nil {
+        return err
+     }
+
+     defer tx.Rollback()
+     resultado, err := tx.Exec(
+        	`UPDATE performers
+         	SET name = ?
+         	WHERE id_performer = ?`,
+        	persona.NombreArtístico,
+        	persona.ID,
+     )
+     if err != nil {
+        return err
+     }
+     filas, err := resultado.RowsAffected()
+     if err != nil {
+        return err
+     }
+     if filas == 0 {
+        return fmt.Errorf("no existe el intérprete con la Id %d", persona.ID)
+     }
+
+     resultado, err = tx.Exec(
+        	`UPDATE persons
+         	SET stage_name = ?,
+             	real_name = ?,
+             	birth_date = ?,
+             	death_date = ?
+         	WHERE id_person = ?`,
+        	persona.NombreArtístico,
+        	persona.NombreReal,
+        	persona.FechaNacimiento,
+        	persona.FechaFallecimiento,
+        	persona.ID,
+     )
+     if err != nil {
+        return err
+     }
+     filas, err = resultado.RowsAffected()
+     if err != nil {
+        return err
+     }
+     if filas == 0 {
+        return fmt.Errorf("no existe la persona con la Id %d", persona.ID)
+     }
+
+     return tx.Commit()
+}
+
+/*
+Agrega un grupo a la BDD, se registra
+como grupo pero también como artista
+*/
+func AgregaGrupo(grupo Grupo, db *sql.DB) error {
+     tx, err := db.Begin()
+     if err != nil {
+        return err
+     }
+
+     defer tx.Rollback()
+
+     resultado, err := tx.Exec(
+        	`INSERT INTO performers (name, id_type)
+         	VALUES (?, ?)`,
+        	grupo.Nombre, 1,
+     )
+     if err != nil {
+        return err
+     }
+
+     id, err := resultado.LastInsertId()
+     if err != nil {
+        return err
+     }
+
+     _, err = tx.Exec(
+        `INSERT INTO groups (id_group, name, start_date, end_date)
+        VALUES (?, ?, ?, ?)`,
+        id,
+        grupo.Nombre,
+        grupo.FechaInicio,
+        grupo.FechaFin,
+     )
+     if err != nil {
+        return err
+     }
+
+     return tx.Commit()
+}
+
+/*
+Busca un grupo en la BDD
+con ayuda de su Id
+*/
+func BuscaGrupo(id int, db *sql.DB) (Grupo, error) {
+     var grupo Grupo
+
+     err := db.QueryRow(
+         `SELECT id_group, name, start_date, end_date
+          FROM groups
+          WHERE id_group = ?`, id,
+     ).Scan(
+        &grupo.ID,
+        &grupo.Nombre,
+        &grupo.FechaInicio,
+        &grupo.FechaFin,
+     )
+     if err != nil {
+        return Grupo{}, err
+     }
+
+     return grupo, nil
+}
+
+/*
+Edita los datos de un grupo en la BDD
+*/
+func EditaGrupo(grupo Grupo, db *sql.DB) error {
+     tx, err := db.Begin()
+     if err != nil {
+        return err
+     }
+
+     defer tx.Rollback()
+
+     resultado, err := tx.Exec(
+        	`UPDATE performers
+         	SET name = ?
+         	WHERE id_performer = ?`,
+        	grupo.Nombre,
+        	grupo.ID,
+     )
+     if err != nil {
+        return err
+     }
+     filas, err := resultado.RowsAffected()
+     if err != nil {
+        return err
+     }
+
+     if filas == 0 {
+        return sql.ErrNoRows
+     }
+
+     resultado, err = tx.Exec(
+        	`UPDATE groups
+         	SET name = ?, start_date = ?, end_date = ?
+         	WHERE id_group = ?`,
+        	grupo.Nombre,
+        	grupo.FechaInicio,
+        	grupo.FechaFin,
+        	grupo.ID,
+     )
+     if err != nil {
+        return err
+     }
+     filas, err = resultado.RowsAffected()
+     if err != nil {
+        return err
+     }
+     if filas == 0 {
+        return sql.ErrNoRows
+     }
+
+     return tx.Commit()
+}
