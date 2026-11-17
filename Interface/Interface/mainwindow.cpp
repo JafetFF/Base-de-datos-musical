@@ -65,6 +65,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->albumsButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->albumsPage);
     });
+    connect(ui->albumsListWidget, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *elemento) {
+        int id = elemento->data(Qt::UserRole).toInt();
+
+        if (id <= 0) {
+            return;
+        }
+
+        QUrl direccion(
+            "http://127.0.0.1:8080/api/albumes/" +
+            QString::number(id)
+        );
+
+        QNetworkRequest peticion(direccion);
+        administradorRed->get(peticion);
+    });
     connect(ui->songsTable, &QTableWidget::currentCellChanged, this, [this](int fila, int, int, int) {
                 if (fila < 0) {
                     return;
@@ -1011,6 +1026,118 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
             }
         }
 
+        respuesta->deleteLater();
+        return;
+    }
+
+    if (respuesta->url().path().startsWith("/api/albumes/") &&
+        respuesta->operation() == QNetworkAccessManager::PutOperation) {
+
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::critical(
+                this,
+                "Error",
+                "No se pudo actualizar el álbum:\n" +
+                    respuesta->errorString()
+            );
+        } else {
+            QMessageBox::information(
+                this,
+                "Éxito",
+                "Los datos del álbum se actualizaron correctamente."
+            );
+            cargarRolas();
+
+            QUrl direccion("http://127.0.0.1:8080/api/albumes");
+            QNetworkRequest peticion(direccion);
+            administradorRed->get(peticion);
+        }
+
+        respuesta->deleteLater();
+        return;
+    }
+
+    if (respuesta->url().path().startsWith("/api/albumes/") &&
+        respuesta->operation() == QNetworkAccessManager::GetOperation) {
+
+        QJsonDocument documento = QJsonDocument::fromJson(datos);
+
+        if (!documento.isObject()) {
+            respuesta->deleteLater();
+            return;
+        }
+
+        QJsonObject album = documento.object();
+
+        QDialog dialogo(this);
+        dialogo.setWindowTitle("Datos del álbum");
+
+        QFormLayout formulario(&dialogo);
+
+        QLineEdit nombre;
+        QSpinBox año;
+        QLineEdit ruta;
+
+        QDialogButtonBox botones(QDialogButtonBox::Close);
+
+        QPushButton editar("Editar");
+        QPushButton guardar("Guardar");
+
+        botones.addButton(&editar, QDialogButtonBox::ActionRole);
+        botones.addButton(&guardar, QDialogButtonBox::ActionRole);
+
+        guardar.setEnabled(false);
+
+        formulario.addRow(&botones);
+
+        connect(&editar, &QPushButton::clicked, &dialogo, [&]() {
+            nombre.setEnabled(true);
+            año.setEnabled(true);
+            editar.setEnabled(false);
+            guardar.setEnabled(true);
+        });
+
+        connect(&guardar, &QPushButton::clicked, &dialogo, [&]() {
+            QJsonObject cambios;
+
+            cambios["nombre"] = nombre.text();
+            cambios["año"] = año.value();
+            cambios["ruta"] = ruta.text();
+
+            QJsonDocument documentoEnvio(cambios);
+            QUrl direccion(
+                "http://127.0.0.1:8080/api/albumes/" +
+                QString::number(album["id"].toInt())
+            );
+
+            QNetworkRequest peticion(direccion);
+            peticion.setHeader(
+                QNetworkRequest::ContentTypeHeader,
+                "application/json"
+            );
+
+            administradorRed->put(
+                peticion,
+                documentoEnvio.toJson()
+            );
+            dialogo.accept();
+        });
+
+        connect(&botones, &QDialogButtonBox::rejected, &dialogo, &QDialog::reject);
+
+        nombre.setText(album["nombre"].toString());
+        año.setRange(0, 3000);
+        año.setValue(album["año"].toInt());
+        ruta.setText(album["ruta"].toString());
+
+        ruta.setReadOnly(true);
+        nombre.setEnabled(false);
+        año.setEnabled(false);
+
+        formulario.addRow("Nombre:", &nombre);
+        formulario.addRow("Año:", &año);
+        formulario.addRow("Directorio:", &ruta);
+        dialogo.exec();
         respuesta->deleteLater();
         return;
     }
