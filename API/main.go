@@ -49,6 +49,7 @@ func main() {
      mux.HandleFunc("PUT /api/albumes/{id}", editaAlbumHandler(db))
      mux.HandleFunc("PUT /api/rolas/{id}", editaRolaHandler(db))
      mux.HandleFunc("GET /api/rolas/{id}", consultaRolaHandler(db))
+     mux.HandleFunc("GET /api/albumes", albumesHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -658,5 +659,26 @@ func consultaRolaHandler(db *sql.DB) http.HandlerFunc {
 
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(rola.Datos())
+     }
+}
+
+// albumesHandler regresa todos los álbumes de la BDD
+func albumesHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            albumes, err := modelo.BuscaAlbumes(db)
+            if err != nil {
+               http.Error(w, "No se pudieron consultar los álbumes",
+               http.StatusInternalServerError)
+               return
+            }
+
+            datos := make([]modelo.DatosAlbum, 0, len(albumes))
+
+            for _, album := range albumes {
+            	datos = append(datos, album.Datos())
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(datos)
      }
 }

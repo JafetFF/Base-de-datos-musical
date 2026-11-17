@@ -49,6 +49,10 @@ MainWindow::MainWindow(QWidget *parent)
     QNetworkRequest peticionArtistas(direccionArtistas);
     administradorRed->get(peticionArtistas);
 
+    QUrl direccionAlbumes("http://127.0.0.1:8080/api/albumes");
+    QNetworkRequest peticionAlbumes(direccionAlbumes);
+    administradorRed->get(peticionAlbumes);
+
     cargarRolas();
     connect(ui->songsButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->songsPage);
@@ -939,6 +943,20 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         respuesta->deleteLater();
         return;
     }
+    if (respuesta->url().path() == "/api/albumes" &&
+        respuesta->operation() == QNetworkAccessManager::GetOperation) {
+
+        QJsonDocument documento = QJsonDocument::fromJson(datos);
+        if (!documento.isArray()) {
+            respuesta->deleteLater();
+            return;
+        }
+
+        albumesDisponibles = documento.array();
+
+        respuesta->deleteLater();
+        return;
+    }
     if (respuesta->url().path() == "/api/grupos") {
         QJsonDocument documento = QJsonDocument::fromJson(datos);
 
@@ -1016,11 +1034,12 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
 
         QLineEdit titulo;
         QComboBox artista;
-        QLineEdit album;
+        QComboBox album;
         QSpinBox pista;
         QSpinBox año;
         QLineEdit genero;
 
+        album.setEditable(false);
         artista.setEditable(false);
 
         titulo.setText(rola["title"].toString());
@@ -1048,7 +1067,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
             artista.addItem(
                 rola["artist"].toString(),
                 rola["performer_id"].toInt()
-                );
+            );
 
             artista.setCurrentIndex(artista.count() - 1);
         }
@@ -1056,7 +1075,34 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         pista.setRange(0, 999);
         año.setRange(0, 3000);
 
-        album.setText(rola["album"].toString());
+        album.clear();
+
+        int indiceAlbumActual = -1;
+
+        for (const QJsonValue &valor : albumesDisponibles) {
+            QJsonObject datoAlbum = valor.toObject();
+
+            QString nombre = datoAlbum["nombre"].toString();
+            int id = datoAlbum["id"].toInt();
+
+            album.addItem(nombre, id);
+
+            if (id == rola["album_id"].toInt()) {
+                indiceAlbumActual = album.count() - 1;
+            }
+        }
+
+        if (indiceAlbumActual >= 0) {
+            album.setCurrentIndex(indiceAlbumActual);
+        } else if (rola["album_id"].toInt() > 0) {
+            album.addItem(
+                rola["album"].toString(),
+                rola["album_id"].toInt()
+            );
+
+            album.setCurrentIndex(album.count() - 1);
+        }
+
         pista.setValue(rola["track"].toInt());
         año.setValue(rola["year"].toInt());
         genero.setText(rola["genre"].toString());
@@ -1083,7 +1129,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
 
         cambios["title"] = titulo.text();
         cambios["performer_id"] = artista.currentData().toInt();
-        cambios["album_id"] = rola["album_id"].toInt();
+        cambios["album_id"] = album.currentData().toInt();
         cambios["path"] = rola["path"].toString();
         cambios["track"] = pista.value();
         cambios["year"] = año.value();
