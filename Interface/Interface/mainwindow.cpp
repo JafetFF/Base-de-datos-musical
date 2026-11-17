@@ -201,43 +201,6 @@ MainWindow::MainWindow(QWidget *parent)
         }
 
     });
-    /* connect(ui->songsTable, &QTableWidget::cellDoubleClicked, this, [this](int fila, int columna) {
-        QTableWidgetItem *tituloItem = ui->songsTable->item(fila, 0);
-        QTableWidgetItem *artistaItem = ui->songsTable->item(fila, 1);
-
-        if (!tituloItem || !artistaItem)
-            return;
-
-        if (artistaItem->text() != "Desconocido")
-            return;
-
-        int idRola = tituloItem->data(Qt::UserRole + 1).toInt();
-        if (idRola <= 0)
-            return;
-
-        idRolaPendiente = idRola;
-
-        QMessageBox pregunta(this);
-        pregunta.setWindowTitle("Corregir intérprete");
-        pregunta.setText("¿Qué tipo de intérprete deseas registrar?");
-
-        QPushButton *artista = pregunta.addButton("Artista", QMessageBox::AcceptRole);
-        QPushButton *grupo = pregunta.addButton("Grupo", QMessageBox::AcceptRole);
-
-        pregunta.addButton("Cancelar", QMessageBox::RejectRole);
-
-        pregunta.exec();
-
-        if (pregunta.clickedButton() == artista) {
-            agregaPersona();
-        }
-        else if (pregunta.clickedButton() == grupo) {
-            agregaGrupo();
-        }
-        else {
-            idRolaPendiente = 0;
-        }
-    });*/
     connect(ui->addGroupButton, &QPushButton::clicked, this, &MainWindow::agregaGrupo);
     connect(ui->groupButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->groupsPage);
@@ -253,6 +216,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
     ui->songsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->artistsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    connect(ui->newAlbumButton, &QPushButton::clicked, this, &MainWindow::agregaAlbum);
 }
 
 MainWindow::~MainWindow()
@@ -1030,6 +994,31 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
 
+    if (respuesta->url().path() == "/api/albumes" &&
+        respuesta->operation() == QNetworkAccessManager::PostOperation) {
+
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::critical(
+                this,
+                "Error",
+                "No se pudo registrar el álbum:\n" +
+                respuesta->errorString()
+            );
+        } else {
+            QMessageBox::information(
+                this,
+                "Éxito",
+                "El álbum se registró correctamente."
+            );
+            QUrl direccion("http://127.0.0.1:8080/api/albumes");
+            QNetworkRequest peticion(direccion);
+            administradorRed->get(peticion);
+            cargarRolas();
+        }
+        respuesta->deleteLater();
+        return;
+    }
+
     if (respuesta->url().path().startsWith("/api/albumes/") &&
         respuesta->operation() == QNetworkAccessManager::PutOperation) {
 
@@ -1654,4 +1643,60 @@ void MainWindow::consultaRola(int id)
     QUrl direccion("http://127.0.0.1:8080/api/rolas/" + QString::number(id));
     QNetworkRequest peticion(direccion);
     administradorRed->get(peticion);
+}
+
+void MainWindow::agregaAlbum()
+{
+    QDialog dialogo(this);
+    dialogo.setWindowTitle("Nuevo álbum");
+
+    QFormLayout formulario(&dialogo);
+
+    QLineEdit nombre;
+    QSpinBox año;
+    QLineEdit ruta;
+
+    año.setRange(0, 3000);
+    formulario.addRow("Nombre:", &nombre);
+    formulario.addRow("Año:", &año);
+    formulario.addRow("Directorio:", &ruta);
+
+    QDialogButtonBox botones(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+
+    formulario.addRow(&botones);
+
+    connect(&botones, &QDialogButtonBox::accepted, &dialogo, &QDialog::accept);
+    connect(&botones, &QDialogButtonBox::rejected, &dialogo, &QDialog::reject);
+
+    if (dialogo.exec() != QDialog::Accepted)
+        return;
+
+    if (nombre.text().trimmed().isEmpty()) {
+        QMessageBox::warning(
+            this,
+            "Datos incompletos",
+            "El nombre del álbum es obligatorio."
+        );
+        return;
+    }
+
+    QJsonObject datos;
+
+    datos["nombre"] = nombre.text().trimmed();
+    datos["año"] = año.value();
+    datos["ruta"] = ruta.text();
+
+    QJsonDocument documento(datos);
+    QUrl direccion("http://127.0.0.1:8080/api/albumes");
+    QNetworkRequest peticion(direccion);
+
+    peticion.setHeader(
+        QNetworkRequest::ContentTypeHeader,
+        "application/json"
+    );
+
+    administradorRed->post(
+        peticion,
+        documento.toJson()
+    );
 }
