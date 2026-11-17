@@ -133,3 +133,27 @@ func BuscaAlbumes(db *sql.DB) ([]Album, error) {
 
      return albumes, nil
 }
+
+/*
+Función que agrega un nuevo álbum en la BDD
+*/
+func AgregaAlbum(album Album, db *sql.DB) (int, error) {
+     resultado, err := db.Exec(
+         	`INSERT INTO albums (path, name, year)
+          	VALUES (?, ?, ?)`,
+		album.ruta,
+         	album.nombre,
+         	album.año,
+     )
+
+     if err != nil {
+        return 0, err
+     }
+
+     id, err := resultado.LastInsertId()
+     if err != nil {
+        return 0, err
+     }
+
+     return int(id), nil
+}

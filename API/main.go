@@ -50,6 +50,7 @@ func main() {
      mux.HandleFunc("PUT /api/rolas/{id}", editaRolaHandler(db))
      mux.HandleFunc("GET /api/rolas/{id}", consultaRolaHandler(db))
      mux.HandleFunc("GET /api/albumes", albumesHandler(db))
+     mux.HandleFunc("POST /api/albumes", agregaAlbumHandler(db))
 
      server := &http.Server{
      	    Addr: "127.0.0.1:8080",
@@ -680,5 +681,38 @@ func albumesHandler(db *sql.DB) http.HandlerFunc {
 
             w.Header().Set("Content-Type", "application/json")
             json.NewEncoder(w).Encode(datos)
+     }
+}
+
+// agregaAlbumHandler agrega un nuevo álbum
+func agregaAlbumHandler(db *sql.DB) http.HandlerFunc {
+     return func(w http.ResponseWriter, r *http.Request) {
+            var datos modelo.DatosAlbum
+            err := json.NewDecoder(r.Body).Decode(&datos)
+            if err != nil {
+               http.Error(w, "Datos inválidos", http.StatusBadRequest)
+               return
+            }
+
+            if strings.TrimSpace(datos.Nombre) == "" {
+               http.Error(w, "El nombre del álbum es obligatorio",
+               http.StatusBadRequest)
+               return
+            }
+
+            album := datos.ObtieneAlbumPorID(0)
+	    
+            id, err := modelo.AgregaAlbum(album, db)
+            if err != nil {
+               http.Error(w, err.Error(), http.StatusInternalServerError)
+               return
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(http.StatusCreated)
+
+            json.NewEncoder(w).Encode(map[string]int{
+		"id": id,
+            })
      }
 }
