@@ -30,6 +30,8 @@
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QSpinBox>
+#include <QComboBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -39,8 +41,14 @@ MainWindow::MainWindow(QWidget *parent)
     , salidaAudio(new QAudioOutput(this))
 {
     ui->setupUi(this);
+    connect(ui->songsTable, &QTableWidget::cellDoubleClicked, this, &MainWindow::editaRola);
     reproductor->setAudioOutput(salidaAudio);
     connect(administradorRed, &QNetworkAccessManager::finished, this, &MainWindow::procesaRes);
+
+    QUrl direccionArtistas("http://127.0.0.1:8080/api/artistas");
+    QNetworkRequest peticionArtistas(direccionArtistas);
+    administradorRed->get(peticionArtistas);
+
     cargarRolas();
     connect(ui->songsButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->songsPage);
@@ -148,16 +156,69 @@ MainWindow::MainWindow(QWidget *parent)
         }
         int id = item->data(Qt::UserRole).toInt();
         QTableWidgetItem *tipoItem = ui->artistsTable->item(fila, 0);
-        if (!tipoItem || tipoItem->text() != "Persona") {
-            QMessageBox::information(
-                this,
-                "Consulta",
-                "Solo consulta personas."
-                );
+        if (!tipoItem) {
             return;
         }
-        consultaPersona(id);
+        if (tipoItem->text() == "Persona") {
+            consultaPersona(id);
+        } else if (tipoItem->text() == "Grupo") {
+            consultaGrupo(id);
+        } else if (tipoItem->text() == "Desconocido") {
+            QMessageBox pregunta(this);
+            pregunta.setWindowTitle("Intérprete desconocido");
+            pregunta.setText("¿Qué tipo de intérprete deseas registrar?");
+
+            QPushButton *artista = pregunta.addButton("Artista", QMessageBox::AcceptRole);
+            QPushButton *grupo = pregunta.addButton("Grupo", QMessageBox::AcceptRole);
+
+            pregunta.addButton("Cancelar", QMessageBox::RejectRole);
+            pregunta.exec();
+
+            if (pregunta.clickedButton() == artista) {
+                agregaPersona();
+            } else if (pregunta.clickedButton() == grupo) {
+                agregaGrupo();
+            }
+        }
+
     });
+    /* connect(ui->songsTable, &QTableWidget::cellDoubleClicked, this, [this](int fila, int columna) {
+        QTableWidgetItem *tituloItem = ui->songsTable->item(fila, 0);
+        QTableWidgetItem *artistaItem = ui->songsTable->item(fila, 1);
+
+        if (!tituloItem || !artistaItem)
+            return;
+
+        if (artistaItem->text() != "Desconocido")
+            return;
+
+        int idRola = tituloItem->data(Qt::UserRole + 1).toInt();
+        if (idRola <= 0)
+            return;
+
+        idRolaPendiente = idRola;
+
+        QMessageBox pregunta(this);
+        pregunta.setWindowTitle("Corregir intérprete");
+        pregunta.setText("¿Qué tipo de intérprete deseas registrar?");
+
+        QPushButton *artista = pregunta.addButton("Artista", QMessageBox::AcceptRole);
+        QPushButton *grupo = pregunta.addButton("Grupo", QMessageBox::AcceptRole);
+
+        pregunta.addButton("Cancelar", QMessageBox::RejectRole);
+
+        pregunta.exec();
+
+        if (pregunta.clickedButton() == artista) {
+            agregaPersona();
+        }
+        else if (pregunta.clickedButton() == grupo) {
+            agregaGrupo();
+        }
+        else {
+            idRolaPendiente = 0;
+        }
+    });*/
     connect(ui->addGroupButton, &QPushButton::clicked, this, &MainWindow::agregaGrupo);
     connect(ui->groupButton, &QPushButton::clicked, this, [this]() {
         ui->pagesStackedWidget->setCurrentWidget(ui->groupsPage);
@@ -171,6 +232,8 @@ MainWindow::MainWindow(QWidget *parent)
         int id = item->data(Qt::UserRole).toInt();
         consultaGrupo(id);
     });
+    ui->songsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->artistsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
 
 MainWindow::~MainWindow()
@@ -673,26 +736,95 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
 
+    if (respuesta->url().path().startsWith("/api/rolas/") &&
+        respuesta->url().path().endsWith("/artista") &&
+        respuesta->operation() == QNetworkAccessManager::PutOperation) {
+
+        QByteArray datos = respuesta->readAll();
+
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(
+                this,
+                "Error al corregir intérprete",
+                QString::fromUtf8(datos)
+            );
+        } else {
+            QMessageBox::information(
+                this,
+                "Éxito",
+                "El intérprete de la canción se actualizó correctamente."
+            );
+
+            idRolaPendiente = 0;
+
+            QUrl direccionRolas("http://127.0.0.1:8080/api/rolas");
+            QNetworkRequest peticionRolas(direccionRolas);
+            administradorRed->get(peticionRolas);
+
+            QUrl direccionArtistas("http://127.0.0.1:8080/api/artistas");
+            QNetworkRequest peticionArtistas(direccionArtistas);
+            administradorRed->get(peticionArtistas);
+        }
+        respuesta->deleteLater();
+        return;
+    }
+
     if (respuesta->url().path() == "/api/personas" &&
         respuesta->operation() == QNetworkAccessManager::PostOperation) {
+
+        QByteArray datos = respuesta->readAll();
 
         if (respuesta->error() != QNetworkReply::NoError) {
             QMessageBox::warning(
                 this,
                 "Error",
                 "No se pudo registrar al artista:\n" +
-                    respuesta->readAll()
+                    QString::fromUtf8(datos)
             );
         } else {
+            QJsonDocument documento = QJsonDocument::fromJson(datos);
+            int idPerformer = documento.object()["id"].toInt();
+
+            if (idPerformer <= 0) {
+                QMessageBox::warning(
+                    this,
+                    "Error",
+                    "No se recibió un Id válido del artista."
+                    );
+                respuesta->deleteLater();
+                return;
+            }
             QMessageBox::information(
                 this,
                 "Registro exitoso",
                 "El artista se agregó correctamente."
             );
 
-            QUrl direccion("http://127.0.0.1:8080/api/artistas");
-            QNetworkRequest peticion(direccion);
-            administradorRed->get(peticion);
+            if (idRolaPendiente > 0) {
+                QUrl direccion(
+                    "http://127.0.0.1:8080/api/rolas/" +
+                    QString::number(idRolaPendiente) + "/artista"
+                );
+
+                QNetworkRequest peticion(direccion);
+
+                peticion.setHeader(
+                    QNetworkRequest::ContentTypeHeader,
+                    "application/json"
+                );
+
+                QJsonObject solicitud;
+                solicitud["idPerformer"] = idPerformer;
+
+                administradorRed->put(
+                    peticion,
+                    QJsonDocument(solicitud).toJson()
+                );
+            } else {
+                QUrl direccion("http://127.0.0.1:8080/api/artistas");
+                QNetworkRequest peticion(direccion);
+                administradorRed->get(peticion);
+            }
         }
         respuesta->deleteLater();
         return;
@@ -704,6 +836,28 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
     QByteArray datos = respuesta->readAll();
+
+    if (respuesta->url().path().startsWith("/api/rolas/") &&
+        respuesta->operation() == QNetworkAccessManager::PutOperation) {
+
+        if (respuesta->error() == QNetworkReply::NoError) {
+            QMessageBox::information(
+                this,
+                "Éxito",
+                "La rola se actualizó correctamente."
+            );
+            cargarRolas();
+        } else {
+            QMessageBox::critical(
+                this,
+                "Error",
+                "No se pudo actualizar la rola."
+            );
+        }
+
+        respuesta->deleteLater();
+        return;
+    }
 
     if (respuesta->url().path() == "/api/minar") {
         if (respuesta->error() != QNetworkReply::NoError) {
@@ -751,6 +905,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         }
 
         QJsonArray artistas = documento.array();
+        artistasDisponibles = artistas;
 
         ui->artistsTable->setRowCount(0);
 
@@ -842,6 +997,112 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         return;
     }
 
+    if (respuesta->url().path().startsWith("/api/rolas/") &&
+        respuesta->operation() == QNetworkAccessManager::GetOperation) {
+
+        QJsonDocument documento = QJsonDocument::fromJson(datos);
+
+        if (!documento.isObject()) {
+            respuesta->deleteLater();
+            return;
+        }
+
+        QJsonObject rola = documento.object();
+
+        QDialog dialogo(this);
+        dialogo.setWindowTitle("Editar rola");
+
+        QFormLayout formulario(&dialogo);
+
+        QLineEdit titulo;
+        QComboBox artista;
+        QLineEdit album;
+        QSpinBox pista;
+        QSpinBox año;
+        QLineEdit genero;
+
+        artista.setEditable(false);
+
+        titulo.setText(rola["title"].toString());
+
+        artista.clear();
+
+        int indiceActual = -1;
+
+        for (const QJsonValue &valor : artistasDisponibles) {
+            QJsonObject datoArtista = valor.toObject();
+
+            QString nombre = datoArtista["Nombre"].toString();
+            int id = datoArtista["Id"].toInt();
+
+            artista.addItem(nombre, id);
+
+            if (id == rola["performer_id"].toInt()) {
+                indiceActual = artista.count() - 1;
+            }
+        }
+
+        if (indiceActual >= 0) {
+            artista.setCurrentIndex(indiceActual);
+        } else if (rola["performer_id"].toInt() > 0) {
+            artista.addItem(
+                rola["artist"].toString(),
+                rola["performer_id"].toInt()
+                );
+
+            artista.setCurrentIndex(artista.count() - 1);
+        }
+
+        pista.setRange(0, 999);
+        año.setRange(0, 3000);
+
+        album.setText(rola["album"].toString());
+        pista.setValue(rola["track"].toInt());
+        año.setValue(rola["year"].toInt());
+        genero.setText(rola["genre"].toString());
+
+        formulario.addRow("Título:", &titulo);
+        formulario.addRow("Artista:", &artista);
+        formulario.addRow("Álbum:", &album);
+        formulario.addRow("Número de pista:", &pista);
+        formulario.addRow("Año:", &año);
+        formulario.addRow("Género:", &genero);
+
+        QDialogButtonBox botones(QDialogButtonBox::Save | QDialogButtonBox::Cancel);
+
+        formulario.addRow(&botones);
+        QObject::connect(&botones, &QDialogButtonBox::accepted, &dialogo, &QDialog::accept);
+        QObject::connect(&botones, &QDialogButtonBox::rejected, &dialogo, &QDialog::reject);
+
+        if (dialogo.exec() != QDialog::Accepted) {
+            respuesta->deleteLater();
+            return;
+        }
+
+        QJsonObject cambios;
+
+        cambios["title"] = titulo.text();
+        cambios["performer_id"] = artista.currentData().toInt();
+        cambios["album_id"] = rola["album_id"].toInt();
+        cambios["path"] = rola["path"].toString();
+        cambios["track"] = pista.value();
+        cambios["year"] = año.value();
+        cambios["genre"] = genero.text();
+
+        QJsonDocument documentoEnvio(cambios);
+        QByteArray datosEnvio = documentoEnvio.toJson();
+
+        QUrl direccion("http://127.0.0.1:8080/api/rolas/" +
+                       QString::number(rola["id"].toInt()));
+
+        QNetworkRequest peticion(direccion);
+        peticion.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+        administradorRed->put(peticion, datosEnvio);
+
+        respuesta->deleteLater();
+        return;
+    }
     if (respuesta->error() != QNetworkReply::NoError) {
         respuesta->deleteLater();
         return;
@@ -899,6 +1160,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         ui->songsTable->insertRow(fila);
         QTableWidgetItem *tituloItem = new QTableWidgetItem(rola["title"].toString());
         tituloItem->setData(Qt::UserRole, rola["path"].toString());
+        tituloItem->setData(Qt::UserRole + 1, rola["id"].toInt());
         ui->songsTable->setItem(fila, 0, tituloItem);
 
         ui->songsTable->setItem(fila, 1, new QTableWidgetItem(rola["artist"].toString()));
@@ -1194,4 +1456,29 @@ void MainWindow::cargarIntegrantes(int idGrupo, QListWidget *lista)
 
         respuesta->deleteLater();
     });
+}
+
+void MainWindow::editaRola(int fila, int columna)
+{
+    Q_UNUSED(columna);
+    QTableWidgetItem *tituloItem = ui->songsTable->item(fila, 0);
+
+    if (!tituloItem) {
+        return;
+    }
+
+    int id = tituloItem->data(Qt::UserRole + 1).toInt();
+
+    if (id <= 0) {
+        return;
+    }
+
+    consultaRola(id);
+}
+
+void MainWindow::consultaRola(int id)
+{
+    QUrl direccion("http://127.0.0.1:8080/api/rolas/" + QString::number(id));
+    QNetworkRequest peticion(direccion);
+    administradorRed->get(peticion);
 }

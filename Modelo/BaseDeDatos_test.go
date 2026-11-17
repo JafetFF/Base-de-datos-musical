@@ -976,7 +976,7 @@ func TestAgregaPersona(t *testing.T) {
              FechaFallecimiento: "",
      }
 
-     err := AgregaPersona(persona, db)
+     _, err := AgregaPersona(persona, db)
      if err != nil {
         t.Fatalf("Error al agregar persona: %v", err)
      }
@@ -1185,7 +1185,7 @@ func TestAgregaGrupo(t *testing.T) {
            FechaFin:    "",
      }
 
-     err := AgregaGrupo(grupo, db)
+     _, err := AgregaGrupo(grupo, db)
      if err != nil {
         t.Fatalf("Error al agregar grupo: %v", err)
      }

@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QJsonArray>
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -33,6 +34,7 @@ private slots:
     void cargarGrupos();
     void consultaGrupo(int id);
     void cargarIntegrantes(int idGrupo, QListWidget *lista);
+    void editaRola(int fila, int columna);
 
 private:
     Ui::MainWindow *ui;
@@ -41,5 +43,8 @@ private:
     QAudioOutput *salidaAudio;
     QString      rutaActual;
     QString      rutaReproduciendo;
+    int          idRolaPendiente = 0;
+    void consultaRola(int id);
+    QJsonArray artistasDisponibles;
 };
 #endif // MAINWINDOW_H

@@ -128,7 +128,7 @@ func Agrega(rola Rola, db *sql.DB) error {
      if strings.TrimSpace(rola.path) != "" {
      	existe, err := ExisteRola(rola.path, tx)
      	if err != nil {
-     	   return nil
+     	   return err
         }
      	if existe {
      	   return nil
@@ -347,10 +347,15 @@ func Edita(id int, rola Rola, db *sql.DB) error {
 	 SET title = ?,
  	     track = ?,
 	     year  = ?,
-	     genre = ?
+	     genre = ?,
+	     id_performer = ?,
+	     id_album = ?,
+	     path = ?
 	     WHERE id_rola = ?`,
 	     rola.title, rola.track,
-	     rola.year, rola.genre, id)
+	     rola.year, rola.genre,
+	     rola.idPerformer,
+	     rola.idAlbum, rola.path, id)
      if err != nil {
      	return err
      }
@@ -468,10 +473,10 @@ func BuscaArtistas(db *sql.DB) ([]Artista, error) {
 /*
 Agrega una persona a la BDD como persona y como artista
 */
-func AgregaPersona(persona Persona, db *sql.DB) error {
+func AgregaPersona(persona Persona, db *sql.DB) (int, error) {
      tx, err := db.Begin()
      if err != nil {
-        return err
+        return 0, err
      }
 
      defer tx.Rollback()
@@ -485,12 +490,12 @@ func AgregaPersona(persona Persona, db *sql.DB) error {
       	   	`INSERT INTO performers (name, id_type)
         	VALUES (?, ?)`, nombre, 0)
      if err != nil {
-        return err
+        return 0, err
      }
 
      id, err := resultado.LastInsertId()
      if err != nil {
-        return err
+        return 0, err
      }
 
      _, err = tx.Exec(
@@ -506,10 +511,15 @@ func AgregaPersona(persona Persona, db *sql.DB) error {
          persona.FechaFallecimiento,
      )
      if err != nil {
-        return err
+        return 0, err
      }
 
-     return tx.Commit()
+     err = tx.Commit()
+     if err != nil {
+     	return 0, err
+     }
+
+     return int(id), nil
 }
 
 /*
@@ -596,10 +606,10 @@ func EditaPersona(persona Persona, db *sql.DB) error {
 Agrega un grupo a la BDD, se registra
 como grupo pero también como artista
 */
-func AgregaGrupo(grupo Grupo, db *sql.DB) error {
+func AgregaGrupo(grupo Grupo, db *sql.DB) (int, error) {
      tx, err := db.Begin()
      if err != nil {
-        return err
+        return 0, err
      }
 
      defer tx.Rollback()
@@ -610,12 +620,12 @@ func AgregaGrupo(grupo Grupo, db *sql.DB) error {
         	grupo.Nombre, 1,
      )
      if err != nil {
-        return err
+        return 0, err
      }
 
      id, err := resultado.LastInsertId()
      if err != nil {
-        return err
+        return 0, err
      }
 
      _, err = tx.Exec(
@@ -627,10 +637,14 @@ func AgregaGrupo(grupo Grupo, db *sql.DB) error {
         grupo.FechaFin,
      )
      if err != nil {
-        return err
+        return 0, err
      }
 
-     return tx.Commit()
+     err = tx.Commit()
+     if err != nil {
+     	return 0, err
+     }
+     return int(id), nil
 }
 
 /*
@@ -911,4 +925,47 @@ func BuscaGrupos(db *sql.DB) ([]Grupo, error) {
      }
 
      return grupos, nil
+}
+
+/*
+Busca una rola en la BDD con ayuda de su id
+*/
+func BuscaRolaPorID(id int, db *sql.DB) (Rola, error) {
+     var rola Rola
+
+     err := db.QueryRow(
+         `SELECT rolas.id_rola,
+                 rolas.id_performer,
+                 rolas.id_album,
+                 COALESCE(performers.name, ''),
+                 COALESCE(albums.name, ''),
+                 rolas.title,
+                 rolas.path,
+                 rolas.track,
+                 rolas.year,
+                 rolas.genre
+          FROM rolas
+          LEFT JOIN performers
+          ON rolas.id_performer = performers.id_performer
+          LEFT JOIN albums
+          ON rolas.id_album = albums.id_album
+          WHERE rolas.id_rola = ?`, id,
+     ).Scan(
+         &rola.id,
+         &rola.idPerformer,
+         &rola.idAlbum,
+         &rola.artist,
+         &rola.album,
+         &rola.title,
+         &rola.path,
+         &rola.track,
+         &rola.year,
+         &rola.genre,
+     )
+
+     if err != nil {
+        return Rola{}, err
+     }
+
+     return rola, nil
 }
