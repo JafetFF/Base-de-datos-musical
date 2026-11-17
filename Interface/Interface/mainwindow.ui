@@ -375,11 +375,55 @@
     <item>
      <layout class="QVBoxLayout" name="playerLayout">
       <item>
-       <widget class="QLabel" name="currentTrackLabel">
-        <property name="text">
-         <string>Ninguna rola seleccionada</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="trackInfoLayout">
+        <item>
+         <widget class="QLabel" name="currentCoverLabel">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>120</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
+            <height>120</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Sin portada</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="playerLayout">
+          <item>
+           <widget class="QLabel" name="currentTrackLabel">
+            <property name="text">
+             <string>Ninguna rola seleccionada</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="currentAlbumLabel">
+            <property name="text">
+             <string>Álbum desconocido</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="currentArtistLabel">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Artista desconocido&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </item>
       <item>
        <layout class="QHBoxLayout" name="playerControlsLayout">

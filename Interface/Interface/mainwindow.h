@@ -48,5 +48,6 @@ private:
     void consultaRola(int id);
     QJsonArray artistasDisponibles;
     QJsonArray albumesDisponibles;
+    int          idAlbumSeleccionado = 0;
 };
 #endif // MAINWINDOW_H

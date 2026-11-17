@@ -217,6 +217,37 @@ MainWindow::MainWindow(QWidget *parent)
     ui->songsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->artistsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     connect(ui->newAlbumButton, &QPushButton::clicked, this, &MainWindow::agregaAlbum);
+    connect(ui->songsTable, &QTableWidget::itemSelectionChanged, this, [this]() {
+        int fila = ui->songsTable->currentRow();
+
+        if (fila < 0)
+            return;
+
+        QTableWidgetItem *titulo = ui->songsTable->item(fila, 0);
+        QTableWidgetItem *artista = ui->songsTable->item(fila, 1);
+        QTableWidgetItem *album = ui->songsTable->item(fila, 2);
+
+        ui->currentTrackLabel->setText(titulo->text());
+        ui->currentArtistLabel->setText(artista->text());
+        ui->currentAlbumLabel->setText(album->text());
+
+        int idAlbum = titulo->data(Qt::UserRole + 2).toInt();
+
+        idAlbumSeleccionado = idAlbum;
+
+        ui->currentCoverLabel->clear();
+        ui->currentCoverLabel->setText("Sin portada");
+
+        if (idAlbum > 0) {
+            QUrl direccion(
+            "http://127.0.0.1:8080/api/portadas/" +
+            QString::number(idAlbum)
+            );
+
+            QNetworkRequest peticion(direccion);
+            administradorRed->get(peticion);
+        }
+    });
 }
 
 MainWindow::~MainWindow()
@@ -980,6 +1011,16 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
             QPixmap portada;
             portada.loadFromData(datos);
 
+            if (idAlbum == idAlbumSeleccionado) {
+                ui->currentCoverLabel->setPixmap(
+                    portada.scaled(
+                        ui->currentCoverLabel->size(),
+                        Qt::KeepAspectRatio,
+                        Qt::SmoothTransformation
+                    )
+                );
+            }
+
             for (int i = 0; i < ui->albumsListWidget->count(); i++) {
                 QListWidgetItem *elemento = ui->albumsListWidget->item(i);
 
@@ -1323,6 +1364,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
         QTableWidgetItem *tituloItem = new QTableWidgetItem(rola["title"].toString());
         tituloItem->setData(Qt::UserRole, rola["path"].toString());
         tituloItem->setData(Qt::UserRole + 1, rola["id"].toInt());
+        tituloItem->setData(Qt::UserRole + 2, rola["album_id"].toInt());
         ui->songsTable->setItem(fila, 0, tituloItem);
 
         ui->songsTable->setItem(fila, 1, new QTableWidgetItem(rola["artist"].toString()));
