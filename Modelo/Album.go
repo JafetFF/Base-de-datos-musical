@@ -93,3 +93,43 @@ func EditaAlbum(album Album, db *sql.DB) error {
 
      return nil
 }
+
+/*
+Función que busca y regresa todos los álbumes de la BDD
+*/
+func BuscaAlbumes(db *sql.DB) ([]Album, error) {
+     filas, err := db.Query(
+            `SELECT id_album, path, name, year
+            FROM albums
+            ORDER BY name`)
+
+     if err != nil {
+        return nil, err
+     }
+     defer filas.Close()
+
+     albumes := make([]Album, 0)
+
+     for filas.Next() {
+         var album Album
+
+         err := filas.Scan(
+             &album.id,
+             &album.ruta,
+             &album.nombre,
+             &album.año,
+         )
+
+         if err != nil {
+            return nil, err
+         }
+
+         albumes = append(albumes, album)
+     }
+
+     if err := filas.Err(); err != nil {
+        return nil, err
+     }
+
+     return albumes, nil
+}
