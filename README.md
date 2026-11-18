@@ -8,7 +8,7 @@ Proyecto 2: Base de datos musical
 
 Este proyecto tiene 4 componentes principales: una base
 de datos; un mini-compilador; un minero; y una interface.
-La base de datos de música es almacenada con ayuda del
+La base de datos de música es poblada con ayuda del
 minero que extrae los archivos mp3, así también como sus metadatos de manera recursiva en un directorio.
 
 ### Acerca del proyecto ROLAS
@@ -64,13 +64,13 @@ $ cd Base-de-dato-musical
 Damos permisos de ejecución al instalador:
 
 ```
-$ chmod +x instalar.sh
+$ chmod +x Instalacion.sh
 ```
 
 Ejecutamos:
 
 ```
-$ ./instalar.sh
+$ ./Instalacion.sh
 ```
 
 El instalador se encarga de compilar automáticamente el servidor y la interface gráfica
@@ -93,14 +93,4 @@ La BDD se almacena en:
 BDD/BaseMusical.db
 ```
 
-### Estructura del proyecto
-
-Directorio / archivo| Descripción
-"API/"| Servidor y API para la comunicación con la interface.
-"BDD/"| Esquema SQL y almacenamiento de la base de datos y de las portadas.
-"Compilador/"| Implementación del mini-compiladorcito.
-"Interface/"| Interface gráfica.
-"Minero/"| Donde está el la implementación del minero.
-"Modelo/"| Modelo de los datos y operaciones sobre la BDD.
-"ROLAS.sh"| Lanzador de la BDD musical.
 
