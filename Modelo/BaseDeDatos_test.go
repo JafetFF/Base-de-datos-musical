@@ -1713,3 +1713,93 @@ func TestBuscaPersonasVacio(t *testing.T) {
         t.Errorf("Se esperaba una lista vacía, se obtuvieron: %d personas", len(personas))
      }
 }
+
+/*
+Prueba unitaria que comprueba que ReiniciaBase
+elimina los registros correctamente
+*/
+func TestReiniciaBase(t *testing.T) {
+     db := bddPrueba(t)
+
+     _, err := db.Exec(
+     	`INSERT INTO performers VALUES
+        (10, 0, 'Persona de prueba'),
+        (11, 1, 'Grupo de prueba');
+	
+        INSERT INTO persons VALUES
+        (10, 'Persona de prueba', 'Nombre real', '2014-04-07', '');
+
+        INSERT INTO groups VALUES
+        (11, 'Grupo de prueba', '2020-11-01', '');
+
+        INSERT INTO in_group VALUES (10, 11);
+
+        INSERT INTO albums VALUES
+        (10, '/musica/prueba', 'Álbum de prueba', 2026);
+
+        INSERT INTO rolas VALUES
+        (10, 10, 10, '/musica/prueba/rola.mp3',
+         'Rola de prueba', 1, 2026, 'Rock')`)
+
+     if err != nil {
+        t.Fatalf("No se pudieron insertar los datos de prueba: %v", err)
+     }
+
+     if err := ReiniciaBase(db); err != nil {
+        t.Fatalf("No se pudo reiniciar la base: %v", err)
+     }
+
+     tablas := []string{
+            "rolas",
+            "in_group",
+            "persons",
+            "groups",
+            "performers",
+     }
+
+     for _, tabla := range tablas {
+         var cantidad int
+
+         err := db.QueryRow(
+             "SELECT COUNT(*) FROM " + tabla,
+         ).Scan(&cantidad)
+
+         if err != nil {
+            t.Fatal(err)
+         }
+
+         if cantidad != 0 {
+            t.Errorf("Se esperaba que %s estuviera vacía, " +
+	    "pero contiene %d registros", tabla, cantidad)
+         }
+     }
+     
+     var tipos int
+
+     err = db.QueryRow(
+         "SELECT COUNT(*) FROM types",
+     ).Scan(&tipos)
+
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if tipos != 3 {
+        t.Errorf("Se esperaban 3 tipos, se encontraron %d", tipos)
+     }
+     
+     var albumes int
+
+     err = db.QueryRow(
+         `SELECT COUNT(*) FROM albums
+         WHERE id_album = 0 AND name = 'Unknown'`,
+     ).Scan(&albumes)
+
+     if err != nil {
+        t.Fatal(err)
+     }
+
+     if albumes != 1 {
+        t.Error("No se conservó el álbum Unknown")
+     }
+}

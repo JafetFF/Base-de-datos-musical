@@ -3,7 +3,6 @@ package modelo
 import (
        "database/sql"
        "fmt"
-       "bufio"
        "strings"
        "os"
        _ "modernc.org/sqlite"
@@ -20,34 +19,6 @@ necesarias
 type EjecutaSQL interface {
      Exec(query string, args ...any) (sql.Result, error)
      QueryRow(query string, args ...any) *sql.Row
-}
-
-// Función que recibe una instrucción para ejecutar en la bdd
-func RecibeInstruccion(db *sql.DB) {
-     scanner := bufio.NewScanner(os.Stdin)
-     for scanner.Scan() {
-     	 result := strings.Fields(scanner.Text())
-	 if len(result) < 2 {
-	    fmt.Println("Debes indicar una acción a realizar con al menos una cadena")
-	    return
-	 }
-	 // cadena := strings.Join(result[1:]," ")
-	 switch result[0] {
-	 case "search": /*
-	    rolas, err := Busca(cadena, db)
-	    if err != nil {
-	       fmt.Printf("Error al buscar las rolas: %v\n", err)
-	       return
-	    }*/
-	 case "add":
-	 // de alguna manera recibe la rola
-	    // Agrega(rola, db)
-	 case "remove":
-	    //Elimina(rola, db)
-	 case "edit":
-	    //Edita(rola, db)
-	 }
-     }
 }
 
 /*
@@ -968,4 +939,40 @@ func BuscaRolaPorID(id int, db *sql.DB) (Rola, error) {
      }
 
      return rola, nil
+}
+
+/*
+Reinicia la BDD
+*/
+func ReiniciaBase(db *sql.DB) error {
+     tx, err := db.Begin()
+     if err != nil {
+        return err
+     }
+
+     defer tx.Rollback()
+
+     tablas := []string{
+            "rolas",
+            "in_group",
+            "persons",
+            "groups",
+            "performers",
+     }
+
+     for _, tabla := range tablas {
+         _, err := tx.Exec("DELETE FROM " + tabla)
+         if err != nil {
+            return fmt.Errorf("No se pudo limpiar %s: %w", tabla, err)
+         }
+     }
+
+     _, err = tx.Exec(
+        `DELETE FROM albums WHERE id_album != 0`,
+     )
+     if err != nil {
+        return fmt.Errorf("no se pudieron limpiar los álbumes: %w", err)
+     }
+
+     return tx.Commit()
 }
