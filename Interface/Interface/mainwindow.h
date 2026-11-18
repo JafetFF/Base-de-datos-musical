@@ -36,6 +36,7 @@ private slots:
     void cargarIntegrantes(int idGrupo, QListWidget *lista);
     void editaRola(int fila, int columna);
     void agregaAlbum();
+    void reiniciaBDD();
 
 private:
     Ui::MainWindow *ui;

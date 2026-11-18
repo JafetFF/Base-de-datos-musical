@@ -248,6 +248,7 @@ MainWindow::MainWindow(QWidget *parent)
             administradorRed->get(peticion);
         }
     });
+    connect(ui->resetBDDButton, &QPushButton::clicked, this, &MainWindow::reiniciaBDD);
 }
 
 MainWindow::~MainWindow()
@@ -268,6 +269,59 @@ void MainWindow::cargarRolas(const QString &busqueda)
 
 void MainWindow::procesaRes(QNetworkReply *respuesta)
 {
+    if (respuesta->url().path() == "/api/reiniciar" &&
+        respuesta->operation() == QNetworkAccessManager::PostOperation) {
+
+        if (respuesta->error() != QNetworkReply::NoError) {
+            QMessageBox::critical(
+                this,
+                "Error",
+                "No se pudo reiniciar la BDD:\n" +
+                respuesta->errorString()
+            );
+        } else {
+            QMessageBox::information(
+                this,
+                "Éxito",
+                "La BDD se reinició correctamente."
+            );
+            ui->songsTable->setRowCount(0);
+            ui->artistsTable->setRowCount(0);
+            ui->groupsTable->setRowCount(0);
+            ui->albumsListWidget->clear();
+
+            artistasDisponibles = QJsonArray();
+            albumesDisponibles = QJsonArray();
+
+            reproductor->stop();
+            reproductor->setSource(QUrl());
+
+            rutaReproduciendo.clear();
+            idAlbumSeleccionado = 0;
+
+            ui->songsTable->clearSelection();
+            ui->currentTrackLabel->setText("Ninguna rola seleccionada");
+            ui->currentAlbumLabel->setText("Álbum desconocido");
+            ui->currentArtistLabel->setText("Artista desconocido");
+            ui->currentCoverLabel->clear();
+            ui->currentCoverLabel->setText("Sin portada");
+
+            QUrl direccionRolas("http://127.0.0.1:8080/api/rolas");
+            QUrl direccionAlbumes("http://127.0.0.1:8080/api/albumes");
+            QUrl direccionArtistas("http://127.0.0.1:8080/api/artistas");
+            QUrl direccionGrupos("http://127.0.0.1:8080/api/grupos");
+            QUrl direccionPersonas("http://127.0.0.1:8080/api/personas");
+
+            administradorRed->get(QNetworkRequest(direccionRolas));
+            administradorRed->get(QNetworkRequest(direccionAlbumes));
+            administradorRed->get(QNetworkRequest(direccionArtistas));
+            administradorRed->get(QNetworkRequest(direccionGrupos));
+            administradorRed->get(QNetworkRequest(direccionPersonas));
+        }
+
+        respuesta->deleteLater();
+        return;
+    }
     if (respuesta->url().path().startsWith("/api/grupos/") &&
         respuesta->url().path().contains("/integrantes")) {
         return;
@@ -1051,6 +1105,7 @@ void MainWindow::procesaRes(QNetworkReply *respuesta)
                 "Éxito",
                 "El álbum se registró correctamente."
             );
+
             QUrl direccion("http://127.0.0.1:8080/api/albumes");
             QNetworkRequest peticion(direccion);
             administradorRed->get(peticion);
@@ -1741,4 +1796,24 @@ void MainWindow::agregaAlbum()
         peticion,
         documento.toJson()
     );
+}
+
+void MainWindow::reiniciaBDD()
+{
+    QMessageBox::StandardButton respuesta = QMessageBox::question(
+        this,
+        "Reiniciar BDD",
+        "¿Estás seguro? Se eliminarán todas las rolas, "
+        "álbumes, personas y grupos registrados. "
+        "Esta acción no se puede deshacer.",
+        QMessageBox::Yes | QMessageBox::No
+    );
+
+    if (respuesta != QMessageBox::Yes)
+        return;
+
+    QUrl direccion("http://127.0.0.1:8080/api/reiniciar");
+    QNetworkRequest peticion(direccion);
+
+    administradorRed->post(peticion, QByteArray());
 }

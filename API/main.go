@@ -1,718 +1,740 @@
 package main
 
 import (
-       "database/sql"
-       "encoding/json"
-       "errors"
-       "log"
-       "net/http"
-       _ "modernc.org/sqlite"
-       "Song/Modelo"
-       "strings"
-       "os"
-       "path/filepath"
-       "strconv"
+	"Song/Modelo"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"log"
+	_ "modernc.org/sqlite"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // Main abre la BDD e inicia el servidor http
 func main() {
-     db, err := sql.Open("sqlite", "BDD/BaseMusical.db")
-     if err != nil {
-     	log.Fatal(err)
-     }
-     defer db.Close()
+	db, err := sql.Open("sqlite", "BDD/BaseMusical.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
-     if err := db.Ping(); err != nil {
-     	log.Fatal(err)
-     }
+	if err := db.Ping(); err != nil {
+		log.Fatal(err)
+	}
 
-     mux:= http.NewServeMux()
+	mux := http.NewServeMux()
 
-     mux.HandleFunc("GET /api/health", healthHandler(db))
-     mux.HandleFunc("GET /api/rolas", rolasHandler(db))
-     mux.HandleFunc("POST /api/minar", minarHandler(db))
-     mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
-     mux.HandleFunc("GET /api/personas", personasHandler(db))
-     mux.HandleFunc("POST /api/personas", agregaPersonaHandler(db))
-     mux.HandleFunc("GET /api/artistas", artistasHandler(db))
-     mux.HandleFunc("GET /api/personas/{id}", personaHandler(db))
-     mux.HandleFunc("PUT /api/personas/{id}", editaPersonaHandler(db))
-     mux.HandleFunc("GET /api/grupos", gruposHandler(db))
-     mux.HandleFunc("POST /api/grupos", agregaGrupoHandler(db))
-     mux.HandleFunc("GET /api/grupos/{id}", grupoHandler(db))
-     mux.HandleFunc("PUT /api/grupos/{id}", editaGrupoHandler(db))
-     mux.HandleFunc("GET /api/grupos/{id}/integrantes", integrantesHandler(db))
-     mux.HandleFunc("POST /api/grupos/{id}/integrantes", agregaIntegranteHandler(db))
-     mux.HandleFunc("DELETE /api/grupos/{id}/integrantes/{idPersona}", eliminaIntegranteHandler(db))
-     mux.HandleFunc("PUT /api/rolas/{id}/artista", corrigeArtistaHandler(db))
-     mux.HandleFunc("GET /api/albumes/{id}", albumHandler(db))
-     mux.HandleFunc("PUT /api/albumes/{id}", editaAlbumHandler(db))
-     mux.HandleFunc("PUT /api/rolas/{id}", editaRolaHandler(db))
-     mux.HandleFunc("GET /api/rolas/{id}", consultaRolaHandler(db))
-     mux.HandleFunc("GET /api/albumes", albumesHandler(db))
-     mux.HandleFunc("POST /api/albumes", agregaAlbumHandler(db))
+	mux.HandleFunc("GET /api/health", healthHandler(db))
+	mux.HandleFunc("GET /api/rolas", rolasHandler(db))
+	mux.HandleFunc("POST /api/minar", minarHandler(db))
+	mux.HandleFunc("GET /api/portadas/{id}", portadaHandler)
+	mux.HandleFunc("GET /api/personas", personasHandler(db))
+	mux.HandleFunc("POST /api/personas", agregaPersonaHandler(db))
+	mux.HandleFunc("GET /api/artistas", artistasHandler(db))
+	mux.HandleFunc("GET /api/personas/{id}", personaHandler(db))
+	mux.HandleFunc("PUT /api/personas/{id}", editaPersonaHandler(db))
+	mux.HandleFunc("GET /api/grupos", gruposHandler(db))
+	mux.HandleFunc("POST /api/grupos", agregaGrupoHandler(db))
+	mux.HandleFunc("GET /api/grupos/{id}", grupoHandler(db))
+	mux.HandleFunc("PUT /api/grupos/{id}", editaGrupoHandler(db))
+	mux.HandleFunc("GET /api/grupos/{id}/integrantes", integrantesHandler(db))
+	mux.HandleFunc("POST /api/grupos/{id}/integrantes", agregaIntegranteHandler(db))
+	mux.HandleFunc("DELETE /api/grupos/{id}/integrantes/{idPersona}", eliminaIntegranteHandler(db))
+	mux.HandleFunc("PUT /api/rolas/{id}/artista", corrigeArtistaHandler(db))
+	mux.HandleFunc("GET /api/albumes/{id}", albumHandler(db))
+	mux.HandleFunc("PUT /api/albumes/{id}", editaAlbumHandler(db))
+	mux.HandleFunc("PUT /api/rolas/{id}", editaRolaHandler(db))
+	mux.HandleFunc("GET /api/rolas/{id}", consultaRolaHandler(db))
+	mux.HandleFunc("GET /api/albumes", albumesHandler(db))
+	mux.HandleFunc("POST /api/albumes", agregaAlbumHandler(db))
+	mux.HandleFunc("POST /api/reiniciar", reiniciarHandler(db))
 
-     server := &http.Server{
-     	    Addr: "127.0.0.1:8080",
-	    Handler: mux,
-     }
+	server := &http.Server{
+		Addr:    "127.0.0.1:8080",
+		Handler: mux,
+	}
 
-     log.Println("Servidor inciado en http://127.0.0.1:8080")
+	log.Println("Servidor inciado en http://127.0.0.1:8080")
 
-     if err := server.ListenAndServe(); err != nil &&
-     	!errors.Is(err, http.ErrServerClosed) {
-	log.Fatal(err)
-     }
+	if err := server.ListenAndServe(); err != nil &&
+		!errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
 }
 
 // healthHandler prueba la conexion con la BDD y regresa su estado
 func healthHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-     	    if err := db.Ping(); err != nil {
-	       http.Error(w, "Error en la BDD", http.StatusServiceUnavailable)
-	       return
-	    }
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := db.Ping(); err != nil {
+			http.Error(w, "Error en la BDD", http.StatusServiceUnavailable)
+			return
+		}
 
-	    w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(map[string]string{
-		"status": "ok",
-		"database": "connected",
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":   "ok",
+			"database": "connected",
 		})
-     }
+	}
 }
 
 // rolasHandler obtiene las rolas de la BDD
 // y devuelve sus datos en json
 func rolasHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-     	    busqueda := r.URL.Query().Get("q")
+	return func(w http.ResponseWriter, r *http.Request) {
+		busqueda := r.URL.Query().Get("q")
 
-	    busqueda = strings.TrimSpace(busqueda)
-	    if busqueda == "" {
-	       busqueda = `title~""`
-	    } else if !strings.ContainsAny(busqueda, "=<>!~&|") {
-	      busqueda = "title~" + strconv.Quote(busqueda)
-	    }
-	    rolas, err := modelo.BuscaCompilada(busqueda, db)
-	    if err != nil {
-	       http.Error(w, "Error al consultar las canciones",
-	       http.StatusInternalServerError)
-	       return
-	    }
+		busqueda = strings.TrimSpace(busqueda)
+		if busqueda == "" {
+			busqueda = `title~""`
+		} else if !strings.ContainsAny(busqueda, "=<>!~&|") {
+			busqueda = "title~" + strconv.Quote(busqueda)
+		}
+		rolas, err := modelo.BuscaCompilada(busqueda, db)
+		if err != nil {
+			http.Error(w, "Error al consultar las canciones",
+				http.StatusInternalServerError)
+			return
+		}
 
-	    datos := make([]modelo.DatosRola, 0, len(rolas))
+		datos := make([]modelo.DatosRola, 0, len(rolas))
 
-	    for _, rola := range rolas {
-		datos = append(datos, rola.Datos())
-	    }
+		for _, rola := range rolas {
+			datos = append(datos, rola.Datos())
+		}
 
-	    w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(datos)
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(datos)
+	}
 }
 
 // minarHandler recibe un directorio y ejecuta al minero
 func minarHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            var solicitud struct {
-            	Directorio string `json:"directorio"`
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		var solicitud struct {
+			Directorio string `json:"directorio"`
+		}
 
-            err := json.NewDecoder(r.Body).Decode(&solicitud)
-            if err != nil {
-               http.Error(w, "Solicitud de json inválida",
-               http.StatusBadRequest)
-               return
-            }
+		err := json.NewDecoder(r.Body).Decode(&solicitud)
+		if err != nil {
+			http.Error(w, "Solicitud de json inválida",
+				http.StatusBadRequest)
+			return
+		}
 
-            if strings.TrimSpace(solicitud.Directorio) == "" {
-               http.Error(w, "Debes indicar un directorio a minar",
-               http.StatusBadRequest)
-               return
-            }
+		if strings.TrimSpace(solicitud.Directorio) == "" {
+			http.Error(w, "Debes indicar un directorio a minar",
+				http.StatusBadRequest)
+			return
+		}
 
-            err = modelo.MinaYAgrega(solicitud.Directorio, db)
-            if err != nil {
-               http.Error(w, "Ocurrió un error al minar el directorio: "+err.Error(),
-               http.StatusInternalServerError)
-               return
-            }
+		err = modelo.MinaYAgrega(solicitud.Directorio, db)
+		if err != nil {
+			http.Error(w, "Ocurrió un error al minar el directorio: "+err.Error(),
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]string{
-		"status": "ok",
-            	"message": "Se minó correctamente",
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"message": "Se minó correctamente",
+		})
+	}
 }
 
 // portadaHandler regresa la portada de un álbum
 func portadaHandler(w http.ResponseWriter, r *http.Request) {
-     id, err := strconv.Atoi(r.PathValue("id"))
-     if err != nil || id <= 0 {
-        http.Error(w, "ID álbum inválido", http.StatusBadRequest)
-        return
-     }
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "ID álbum inválido", http.StatusBadRequest)
+		return
+	}
 
-     extensiones := []string{".jpg", ".png", ".gif", ".webp"}
+	extensiones := []string{".jpg", ".png", ".gif", ".webp"}
 
-     for _, extension := range extensiones {
-         ruta := filepath.Join(
-              "BDD",
-              "Portadas",
-              strconv.Itoa(id)+extension,
-         )
+	for _, extension := range extensiones {
+		ruta := filepath.Join(
+			"BDD",
+			"Portadas",
+			strconv.Itoa(id)+extension,
+		)
 
-         imagen, err := os.ReadFile(ruta)
-         if err != nil {
-            continue
-         }
+		imagen, err := os.ReadFile(ruta)
+		if err != nil {
+			continue
+		}
 
-         w.Header().Set("Content-Type", http.DetectContentType(imagen))
-         w.Write(imagen)
-         return
-     }
+		w.Header().Set("Content-Type", http.DetectContentType(imagen))
+		w.Write(imagen)
+		return
+	}
 
-     http.Error(w, "No se encontró la portada", http.StatusNotFound)
+	http.Error(w, "No se encontró la portada", http.StatusNotFound)
 }
 
 // personasHandler obtiene todas las personas de la BDD
 // y devuelve sus datos en json
 func personasHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            personas, err := modelo.BuscaPersonas(db)
-            if err != nil {
-               http.Error(w, "Ocurrió un error al consultar las personas",
-               http.StatusInternalServerError)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		personas, err := modelo.BuscaPersonas(db)
+		if err != nil {
+			http.Error(w, "Ocurrió un error al consultar las personas",
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(personas)
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(personas)
+	}
 }
 
 // agregaPersonaHandler registra a una persona en la BDD
 func agregaPersonaHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            var persona modelo.Persona
-            err := json.NewDecoder(r.Body).Decode(&persona)
-            if err != nil {
-               http.Error(w, "Solicitud de json inválida",
-               http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		var persona modelo.Persona
+		err := json.NewDecoder(r.Body).Decode(&persona)
+		if err != nil {
+			http.Error(w, "Solicitud de json inválida",
+				http.StatusBadRequest)
+			return
+		}
 
-            if strings.TrimSpace(persona.NombreArtístico) == "" &&
-	       strings.TrimSpace(persona.NombreReal) == "" {
-               http.Error(w, "Proporciona al menos un nombre",
-               http.StatusBadRequest)
-               return
-            }
+		if strings.TrimSpace(persona.NombreArtístico) == "" &&
+			strings.TrimSpace(persona.NombreReal) == "" {
+			http.Error(w, "Proporciona al menos un nombre",
+				http.StatusBadRequest)
+			return
+		}
 
-            id, err := modelo.AgregaPersona(persona, db)
-            if err != nil {
-               http.Error(w, "Error al registrar la persona",
-               http.StatusInternalServerError)
-               return
-            }
+		id, err := modelo.AgregaPersona(persona, db)
+		if err != nil {
+			http.Error(w, "Error al registrar la persona",
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 
-            json.NewEncoder(w).Encode(map[string]any{
-		"status": "ok",
-            	"message": "Persona registrada correctamente",
-		"id": id,
-            })
-    }
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":  "ok",
+			"message": "Persona registrada correctamente",
+			"id":      id,
+		})
+	}
 }
 
 // artistasHandler obtiene todos los artistas de la BDD
 // y regresa sus datos en un json
 func artistasHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            artistas, err := modelo.BuscaArtistas(db)
-            if err != nil {
-               http.Error(w, "Ocurrió un error al consultar los artistas",
-               http.StatusInternalServerError)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		artistas, err := modelo.BuscaArtistas(db)
+		if err != nil {
+			http.Error(w, "Ocurrió un error al consultar los artistas",
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(artistas)
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(artistas)
+	}
 }
 
 // personaHandler obtiene una persona de la BDD
 func personaHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "Id de persona inválido",
-               http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "Id de persona inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            persona, err := modelo.BuscaPersona(id, db)
-            if err != nil {
-               http.Error(w, "No se encontró a la persona",
-               http.StatusNotFound)
-               return
-            }
+		persona, err := modelo.BuscaPersona(id, db)
+		if err != nil {
+			http.Error(w, "No se encontró a la persona",
+				http.StatusNotFound)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(persona)
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(persona)
+	}
 }
 
 // editaPersonaHandler edita los datos de una persona
 func editaPersonaHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "Id de persona inválido",
-               http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "Id de persona inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            var persona modelo.Persona
+		var persona modelo.Persona
 
-            err = json.NewDecoder(r.Body).Decode(&persona)
-            if err != nil {
-               http.Error(w, "Solicitud de json inválida",
-               http.StatusBadRequest)
-               return
-            }
+		err = json.NewDecoder(r.Body).Decode(&persona)
+		if err != nil {
+			http.Error(w, "Solicitud de json inválida",
+				http.StatusBadRequest)
+			return
+		}
 
-            if strings.TrimSpace(persona.NombreArtístico) == "" &&
-               strings.TrimSpace(persona.NombreReal) == "" {
-               http.Error(w, "Proporciona al menos un nombre",
-               http.StatusBadRequest)
-               return
-            }
+		if strings.TrimSpace(persona.NombreArtístico) == "" &&
+			strings.TrimSpace(persona.NombreReal) == "" {
+			http.Error(w, "Proporciona al menos un nombre",
+				http.StatusBadRequest)
+			return
+		}
 
-            persona.ID = id
+		persona.ID = id
 
-            err = modelo.EditaPersona(persona, db)
-            if err != nil {
-               http.Error(w, "Error al editar la persona: "+err.Error(),
-               http.StatusInternalServerError)
-               return
-            }
+		err = modelo.EditaPersona(persona, db)
+		if err != nil {
+			http.Error(w, "Error al editar la persona: "+err.Error(),
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json")
 
-            json.NewEncoder(w).Encode(map[string]string{
-		"status": "ok",
-            	"message": "Persona actualizada correctamente",
-            })
-    }
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"message": "Persona actualizada correctamente",
+		})
+	}
 }
 
 // Consulta los grupos de la BDD
 func gruposHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            grupos, err := modelo.BuscaGrupos(db)
-            if err != nil {
-               http.Error(w, "Error al consultar los grupos",
-               http.StatusInternalServerError)
-               return
-            }
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(grupos)
-     }
+	return func(w http.ResponseWriter, r *http.Request) {
+		grupos, err := modelo.BuscaGrupos(db)
+		if err != nil {
+			http.Error(w, "Error al consultar los grupos",
+				http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(grupos)
+	}
 }
 
 // agregaGrupoHandler agrega un grupo en la BDD
 func agregaGrupoHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            var grupo modelo.Grupo
-            err := json.NewDecoder(r.Body).Decode(&grupo)
-            if err != nil {
-               http.Error(w, "Solicitud de json inválida",
-               http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		var grupo modelo.Grupo
+		err := json.NewDecoder(r.Body).Decode(&grupo)
+		if err != nil {
+			http.Error(w, "Solicitud de json inválida",
+				http.StatusBadRequest)
+			return
+		}
 
-            if strings.TrimSpace(grupo.Nombre) == "" {
-               http.Error(w, "El nombre del grupo es obligatorio",
-               http.StatusBadRequest)
-               return
-            }
+		if strings.TrimSpace(grupo.Nombre) == "" {
+			http.Error(w, "El nombre del grupo es obligatorio",
+				http.StatusBadRequest)
+			return
+		}
 
-            id, err := modelo.AgregaGrupo(grupo, db)
-            if err != nil {
-               http.Error(w, "Error al registrar el grupo: "+err.Error(),
-               http.StatusInternalServerError)
-               return
-            }
+		id, err := modelo.AgregaGrupo(grupo, db)
+		if err != nil {
+			http.Error(w, "Error al registrar el grupo: "+err.Error(),
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 
-            json.NewEncoder(w).Encode(map[string]any{
-		"status": "ok",
-            	"message": "Grupo registrado correctamente",
-		"id": id,
-            })
-    }
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":  "ok",
+			"message": "Grupo registrado correctamente",
+			"id":      id,
+		})
+	}
 }
 
 // grupoHandler obtiene un grupo de la BDD
 func grupoHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "Id grupo inválido",
-               http.StatusBadRequest)
-               return
-            }
-            grupo, err := modelo.BuscaGrupo(id, db)
-            if err != nil {
-               http.Error(w, "No se encontró el grupo",
-               http.StatusNotFound)
-               return
-            }
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(grupo)
-     }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "Id grupo inválido",
+				http.StatusBadRequest)
+			return
+		}
+		grupo, err := modelo.BuscaGrupo(id, db)
+		if err != nil {
+			http.Error(w, "No se encontró el grupo",
+				http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(grupo)
+	}
 }
 
 // editaGrupoHandler edita los datos de un grupo
 func editaGrupoHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "ID de grupo inválido",
-               http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "ID de grupo inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            var grupo modelo.Grupo
-            err = json.NewDecoder(r.Body).Decode(&grupo)
-            if err != nil {
-               http.Error(w, "Solicitud de json inválida",
-               http.StatusBadRequest)
-               return
-            }
+		var grupo modelo.Grupo
+		err = json.NewDecoder(r.Body).Decode(&grupo)
+		if err != nil {
+			http.Error(w, "Solicitud de json inválida",
+				http.StatusBadRequest)
+			return
+		}
 
-            if strings.TrimSpace(grupo.Nombre) == "" {
-               http.Error(w, "El nombre del grupo es obligatorio",
-               http.StatusBadRequest)
-               return
-            }
+		if strings.TrimSpace(grupo.Nombre) == "" {
+			http.Error(w, "El nombre del grupo es obligatorio",
+				http.StatusBadRequest)
+			return
+		}
 
-            grupo.ID = id
-            err = modelo.EditaGrupo(grupo, db)
-            if err != nil {
-               http.Error(w, "Error al editar el grupo: "+err.Error(),
-               http.StatusInternalServerError)
-               return
-            }
+		grupo.ID = id
+		err = modelo.EditaGrupo(grupo, db)
+		if err != nil {
+			http.Error(w, "Error al editar el grupo: "+err.Error(),
+				http.StatusInternalServerError)
+			return
+		}
 
-	    w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-            	"message": "Grupo actualizado correctamente",
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"message": "Grupo actualizado correctamente",
+		})
+	}
 }
 
 // integrantesHandler consulta los integrantes de un grupo
 func integrantesHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "Id de grupo inválido",
-	       http.StatusBadRequest)
-               return
-            }
-            integrantes, err := modelo.BuscaIntegrantes(id, db)
-            if err != nil {
-               http.Error(w, "Error al consultar los integrantes",
-	       http.StatusInternalServerError)
-               return
-            }
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(integrantes)
-     }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "Id de grupo inválido",
+				http.StatusBadRequest)
+			return
+		}
+		integrantes, err := modelo.BuscaIntegrantes(id, db)
+		if err != nil {
+			http.Error(w, "Error al consultar los integrantes",
+				http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(integrantes)
+	}
 }
 
 // agregaIntegranteHandler agrega una persona a un grupo
 func agregaIntegranteHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            idGrupo, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || idGrupo <= 0 {
-               http.Error(w, "ID de grupo inválido",
-	       http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		idGrupo, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || idGrupo <= 0 {
+			http.Error(w, "ID de grupo inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            var datos struct {
-            	IDPersona int `json:"idPersona"`
-            }
+		var datos struct {
+			IDPersona int `json:"idPersona"`
+		}
 
-            err = json.NewDecoder(r.Body).Decode(&datos)
-            if err != nil || datos.IDPersona <= 0 {
-               http.Error(w, "Id de persona inválido",
-	       http.StatusBadRequest)
-               return
-            }
+		err = json.NewDecoder(r.Body).Decode(&datos)
+		if err != nil || datos.IDPersona <= 0 {
+			http.Error(w, "Id de persona inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            err = modelo.AgregaIntegrante(datos.IDPersona, idGrupo, db)
-            if err != nil {
-               if errors.Is(err, sql.ErrNoRows) {
-               	  http.Error(w, "No existe el grupo o la persona",
-		  http.StatusNotFound)
-                  return
-               }
+		err = modelo.AgregaIntegrante(datos.IDPersona, idGrupo, db)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "No existe el grupo o la persona",
+					http.StatusNotFound)
+				return
+			}
 
-               http.Error(w, "No se pudo agregar el integrante",
-	       http.StatusConflict)
-               return
-            }
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusCreated)
-            json.NewEncoder(w).Encode(map[string]string{
-		"mensaje": "Integrante agregado correctamente",
-            })
-     }
+			http.Error(w, "No se pudo agregar el integrante",
+				http.StatusConflict)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{
+			"mensaje": "Integrante agregado correctamente",
+		})
+	}
 }
 
 // eliminaIntegranteHandler elimina a una persona de un grupo
 func eliminaIntegranteHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            idGrupo, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || idGrupo <= 0 {
-               http.Error(w, "ID de grupo inválido",
-	       http.StatusBadRequest)
-               return
-            }
-            idPersona, err := strconv.Atoi(r.PathValue("idPersona"))
-            if err != nil || idPersona <= 0 {
-               http.Error(w, "Id de persona inválido",
-	       http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		idGrupo, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || idGrupo <= 0 {
+			http.Error(w, "ID de grupo inválido",
+				http.StatusBadRequest)
+			return
+		}
+		idPersona, err := strconv.Atoi(r.PathValue("idPersona"))
+		if err != nil || idPersona <= 0 {
+			http.Error(w, "Id de persona inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            err = modelo.EliminaIntegrante(idPersona, idGrupo, db)
-            if err != nil {
-               if errors.Is(err, sql.ErrNoRows) {
-                  http.Error(w, "La persona no pertenece a este grupo",
-		  http.StatusNotFound)
-                  return
-               }
+		err = modelo.EliminaIntegrante(idPersona, idGrupo, db)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "La persona no pertenece a este grupo",
+					http.StatusNotFound)
+				return
+			}
 
-               http.Error(w, "No se pudo eliminar el integrante",
-	       http.StatusInternalServerError)
-               return
-            }
+			http.Error(w, "No se pudo eliminar el integrante",
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]string{
-                "mensaje": "Integrante eliminado correctamente",
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"mensaje": "Integrante eliminado correctamente",
+		})
+	}
 }
 
 // corrigeArtistaHandler asigna un artista o grupo a una rola
 func corrigeArtistaHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            idRola, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || idRola <= 0 {
-               http.Error(w, "Id de la rola inválido",
-	       http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		idRola, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || idRola <= 0 {
+			http.Error(w, "Id de la rola inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            var datos struct {
-                IDPerformer int `json:"idPerformer"`
-            }
+		var datos struct {
+			IDPerformer int `json:"idPerformer"`
+		}
 
-            err = json.NewDecoder(r.Body).Decode(&datos)
-            if err != nil || datos.IDPerformer <= 0 {
-               http.Error(w, "Id del artista inválido",
-	       http.StatusBadRequest)
-               return
-            }
+		err = json.NewDecoder(r.Body).Decode(&datos)
+		if err != nil || datos.IDPerformer <= 0 {
+			http.Error(w, "Id del artista inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            err = modelo.AsignaPerformer(idRola, datos.IDPerformer, db)
-            if err != nil {
-               if errors.Is(err, sql.ErrNoRows) {
-                  http.Error(w, "No se encontró la rola o el artista",
-                  http.StatusNotFound)
-                  return
-               }
+		err = modelo.AsignaPerformer(idRola, datos.IDPerformer, db)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "No se encontró la rola o el artista",
+					http.StatusNotFound)
+				return
+			}
 
-                http.Error(w, "No se pudo corregir el artista: "+err.Error(),
-                http.StatusInternalServerError)
-                return
-            }
+			http.Error(w, "No se pudo corregir el artista: "+err.Error(),
+				http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-            	"message": "Artista asignado correctamente",
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"message": "Artista asignado correctamente",
+		})
+	}
 }
 
 // albumHandler consulta un album
 func albumHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "Id de álbum inválido",
-               http.StatusBadRequest)
-               return
-            }
-            album, err := modelo.BuscaAlbumPorID(id, db)
-            if err != nil {
-               http.Error(w, "No se encontró el álbum",
-               http.StatusNotFound)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "Id de álbum inválido",
+				http.StatusBadRequest)
+			return
+		}
+		album, err := modelo.BuscaAlbumPorID(id, db)
+		if err != nil {
+			http.Error(w, "No se encontró el álbum",
+				http.StatusNotFound)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(album.Datos())
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(album.Datos())
+	}
 }
 
 // editaAlbumHandler edita un album
 func editaAlbumHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "ID de álbum inválido",
-	       http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "ID de álbum inválido",
+				http.StatusBadRequest)
+			return
+		}
 
-            var datos modelo.DatosAlbum
-            err = json.NewDecoder(r.Body).Decode(&datos)
-            if err != nil {
-               http.Error(w, "Datos inválidos", http.StatusBadRequest)
-               return
-            }
+		var datos modelo.DatosAlbum
+		err = json.NewDecoder(r.Body).Decode(&datos)
+		if err != nil {
+			http.Error(w, "Datos inválidos", http.StatusBadRequest)
+			return
+		}
 
-            album := datos.ObtieneAlbumPorID(id)
+		album := datos.ObtieneAlbumPorID(id)
 
-            err = modelo.EditaAlbum(album, db)
-            if err != nil {
-               http.Error(w, err.Error(), http.StatusInternalServerError)
-               return
-            }
+		err = modelo.EditaAlbum(album, db)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]string{
-		"mensaje": "Álbum actualizado correctamente",
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"mensaje": "Álbum actualizado correctamente",
+		})
+	}
 }
 
 // editaRolaHanlder edita una rola a partir de su id
 func editaRolaHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-               http.Error(w, "ID de rola inválido", http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "ID de rola inválido", http.StatusBadRequest)
+			return
+		}
 
-            var datos modelo.DatosRola
-            err = json.NewDecoder(r.Body).Decode(&datos)
-            if err != nil {
-               http.Error(w, "Datos inválidos", http.StatusBadRequest)
-               return
-            }
+		var datos modelo.DatosRola
+		err = json.NewDecoder(r.Body).Decode(&datos)
+		if err != nil {
+			http.Error(w, "Datos inválidos", http.StatusBadRequest)
+			return
+		}
 
-            rola := datos.ToRola()
+		rola := datos.ToRola()
 
-            err = modelo.Edita(id, rola, db)
-            if err != nil {
-               http.Error(w, err.Error(), http.StatusInternalServerError)
-               return
-            }
+		err = modelo.Edita(id, rola, db)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]string{
-		"mensaje": "Rola actualizada correctamente",
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"mensaje": "Rola actualizada correctamente",
+		})
+	}
 }
 
 // consultaRolaHandler consulta una rola
 func consultaRolaHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            id, err := strconv.Atoi(r.PathValue("id"))
-            if err != nil || id <= 0 {
-              http.Error(w, "Id de rola inválido", http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil || id <= 0 {
+			http.Error(w, "Id de rola inválido", http.StatusBadRequest)
+			return
+		}
 
-            rola, err := modelo.BuscaRolaPorID(id, db)
-            if err != nil {
-               http.Error(w, "No se encontró la rola",
-	       http.StatusNotFound)
-               return
-            }
+		rola, err := modelo.BuscaRolaPorID(id, db)
+		if err != nil {
+			http.Error(w, "No se encontró la rola",
+				http.StatusNotFound)
+			return
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(rola.Datos())
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(rola.Datos())
+	}
 }
 
 // albumesHandler regresa todos los álbumes de la BDD
 func albumesHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            albumes, err := modelo.BuscaAlbumes(db)
-            if err != nil {
-               http.Error(w, "No se pudieron consultar los álbumes",
-               http.StatusInternalServerError)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		albumes, err := modelo.BuscaAlbumes(db)
+		if err != nil {
+			http.Error(w, "No se pudieron consultar los álbumes",
+				http.StatusInternalServerError)
+			return
+		}
 
-            datos := make([]modelo.DatosAlbum, 0, len(albumes))
+		datos := make([]modelo.DatosAlbum, 0, len(albumes))
 
-            for _, album := range albumes {
-            	datos = append(datos, album.Datos())
-            }
+		for _, album := range albumes {
+			datos = append(datos, album.Datos())
+		}
 
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(datos)
-     }
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(datos)
+	}
 }
 
 // agregaAlbumHandler agrega un nuevo álbum
 func agregaAlbumHandler(db *sql.DB) http.HandlerFunc {
-     return func(w http.ResponseWriter, r *http.Request) {
-            var datos modelo.DatosAlbum
-            err := json.NewDecoder(r.Body).Decode(&datos)
-            if err != nil {
-               http.Error(w, "Datos inválidos", http.StatusBadRequest)
-               return
-            }
+	return func(w http.ResponseWriter, r *http.Request) {
+		var datos modelo.DatosAlbum
+		err := json.NewDecoder(r.Body).Decode(&datos)
+		if err != nil {
+			http.Error(w, "Datos inválidos", http.StatusBadRequest)
+			return
+		}
 
-            if strings.TrimSpace(datos.Nombre) == "" {
-               http.Error(w, "El nombre del álbum es obligatorio",
-               http.StatusBadRequest)
-               return
-            }
+		if strings.TrimSpace(datos.Nombre) == "" {
+			http.Error(w, "El nombre del álbum es obligatorio",
+				http.StatusBadRequest)
+			return
+		}
 
-            album := datos.ObtieneAlbumPorID(0)
-	    
-            id, err := modelo.AgregaAlbum(album, db)
-            if err != nil {
-               http.Error(w, err.Error(), http.StatusInternalServerError)
-               return
-            }
+		album := datos.ObtieneAlbumPorID(0)
 
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusCreated)
+		id, err := modelo.AgregaAlbum(album, db)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-            json.NewEncoder(w).Encode(map[string]int{
-		"id": id,
-            })
-     }
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		json.NewEncoder(w).Encode(map[string]int{
+			"id": id,
+		})
+	}
+}
+
+// reiniciarHandler reinicia la BDD
+func reiniciarHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := modelo.ReiniciaBase(db)
+		if err != nil {
+			http.Error(
+				w, "No se pudo reiniciar la BDD: "+err.Error(),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"message": "La BDD se reinició correctamente",
+		})
+	}
 }

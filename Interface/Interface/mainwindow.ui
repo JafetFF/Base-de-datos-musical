@@ -119,6 +119,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="resetBDDButton">
+          <property name="text">
+           <string>Reiniciar BDD</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="sidebarSpacer">
           <property name="orientation">
            <enum>Qt::Orientation::Vertical</enum>
