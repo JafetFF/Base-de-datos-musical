@@ -4,3 +4,10 @@
 # temporales
 *.tmp
 
+# ejecutables
+/ROLAS-Servidor
+/Modelo/Modelo
+
+# compilaciones de qt
+/Interface/Interface/build/
+/Interface/Interface/build-release/

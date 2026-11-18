@@ -16,7 +16,21 @@ import (
 
 // Main abre la BDD e inicia el servidor http
 func main() {
-	db, err := sql.Open("sqlite", "BDD/BaseMusical.db")
+        rutaBDD := filepath.Join("BDD", "BaseMusical.db")
+	rutaEsquema := filepath.Join("BDD", "rolas.sql")
+
+	_, err := os.Stat(rutaBDD)
+	nuevaBDD := errors.Is(err, os.ErrNotExist)
+
+	if err != nil && !nuevaBDD {
+    	   log.Fatal(err)
+	}
+
+	if err := os.MkdirAll("BDD", 0755); err != nil {
+    	   log.Fatal(err)
+        }
+	
+	db, err := sql.Open("sqlite", rutaBDD)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,6 +39,18 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatal(err)
 	}
+	if nuevaBDD {
+    	   esquema, err := os.ReadFile(rutaEsquema)
+    	   if err != nil {
+              log.Fatal(err)
+    	   }
+
+    	   if _, err := db.Exec(string(esquema)); err != nil {
+              log.Fatal("Error al inicializar la BDD: ", err)
+    	   }
+
+    	   log.Println("Se creó la BDD correctamente.")
+        }
 
 	mux := http.NewServeMux()
 
