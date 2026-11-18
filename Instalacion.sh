@@ -24,9 +24,7 @@ go build -o ROLAS-Servidor ./API
 
 echo "Compilando la interfaz gráfica..."
 
-cmake -S Interface/Interface 
--B Interface/Interface/build-release 
--DCMAKE_BUILD_TYPE=Release
+cmake -S Interface/Interface -B Interface/Interface/build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build Interface/Interface/build-release --parallel
 
 echo "Preparando el lanzador..."
