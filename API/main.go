@@ -730,6 +730,11 @@ func reiniciarHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		if err := limpiaPortadas(); err != nil {
+    		   log.Printf("No se pudieron limpiar las portadas: %v",
+		   err)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 
 		json.NewEncoder(w).Encode(map[string]string{
@@ -737,4 +742,26 @@ func reiniciarHandler(db *sql.DB) http.HandlerFunc {
 			"message": "La BDD se reinició correctamente",
 		})
 	}
+}
+
+// limpiaPortadas limpia las portadas al reiniciar la BDD
+func limpiaPortadas() error {
+     archivos, err := os.ReadDir("BDD/Portadas")
+     if err != nil {
+        return err
+     }
+
+     for _, archivo := range archivos {
+         if archivo.IsDir() {
+            continue
+         }
+
+         ruta := filepath.Join("BDD/Portadas", archivo.Name())
+
+         if err := os.Remove(ruta); err != nil {
+            return err
+         }
+     }
+
+     return nil
 }
